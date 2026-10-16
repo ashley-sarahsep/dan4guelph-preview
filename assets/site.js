@@ -337,6 +337,18 @@
      ------------------------------------------------------------------- */
   var HERO = 'James';
 
+  /* The game is finished enough to play and not finished enough to show, so
+     it is switched off while the campaign works on the copy and the art.
+     Off means the chain never arms: the spider stays a spider that drops on
+     a thread, and the pumpkin's card stops at the voting link rather than
+     pointing anywhere. Flip this to true and everything below wakes up.
+     It is a constant rather than a difference injected by
+     tools/build-preview.py on purpose - that script changes index.html and
+     nothing else, so that a diff between the two public repositories stays
+     worth reading. A fourth difference, in a second file, would cost more
+     than it buys. */
+  var QUEST_READY = false;
+
   function art(inner) {
     return '<svg class="quest__scene" viewBox="0 0 320 132" aria-hidden="true">' + inner + '</svg>';
   }
@@ -794,9 +806,9 @@
     sp.setAttribute('aria-hidden', 'true');
     sp.tabIndex = -1;
     sp.innerHTML = '<span class="hw-spider__thread"></span>' + SPIDER;
-    if (pumpkinFound) unmaskSpider(sp);
+    if (QUEST_READY && pumpkinFound) unmaskSpider(sp);
     sp.addEventListener('click', function () {
-      if (pumpkinFound) { openQuest(); return; }
+      if (QUEST_READY && pumpkinFound) { openQuest(); return; }
       /* Hover does the work on a pointer; a tap has no hover, so a touch
          drops it and it climbs back on its own. */
       sp.classList.add('is-down');
@@ -827,8 +839,10 @@
       'Polls are open 10am to 8pm.</p>' +
       '<p><a href="' + VOTE_URL + '" target="_blank" rel="noopener noreferrer">' +
       'Voting locations and accessibility<span class="sr-only"> (opens in a new tab)</span></a></p>' +
-      '<p class="hw-found__next">One more thing is hidden on this page. ' +
-      'There is a spider in the cobweb at the very top. Go and press it.</p>' +
+      (QUEST_READY
+        ? '<p class="hw-found__next">One more thing is hidden on this page. ' +
+          'There is a spider in the cobweb at the very top. Go and press it.</p>'
+        : '') +
       '<button type="button" class="btn btn--outline">Close</button></div>';
     found.querySelector('.hw-found__inner > button').addEventListener('click', function () { found.close(); });
     document.body.appendChild(found);
@@ -849,7 +863,7 @@
       /* Finding the pumpkin is what arms the spider. Two steps, and the whole
          length of the page between them. */
       pumpkinFound = true;
-      var sp = document.querySelector('.hw-spider');
+      var sp = QUEST_READY && document.querySelector('.hw-spider');
       if (sp) unmaskSpider(sp);
       if (typeof d.showModal === 'function') d.showModal();
     });
