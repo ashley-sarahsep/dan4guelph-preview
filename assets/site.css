@@ -1184,11 +1184,12 @@ html[data-motion="reduced"] .hw-spider.is-down .hw-spider__thread { height: clam
   overflow: hidden;
 }
 .quest__bar {
-  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
   background: #0B0812; padding: 10px 16px;
   font-family: var(--font-head); font-weight: 700; font-size: 0.9375rem;
   color: #FFA500; border-bottom: 2px solid #3A2F4F;
 }
+.quest__where { color: #C9A0FF; font-weight: 700; font-size: 0.875rem; }
 .quest__scene { display: block; width: 100%; height: auto; background: #0E0A17; }
 .quest__body { padding: clamp(16px, 3vw, 24px); display: flex; flex-direction: column; gap: 14px; }
 .quest__log {
