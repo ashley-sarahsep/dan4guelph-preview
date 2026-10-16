@@ -268,7 +268,7 @@
   btn.className = 'season-fab';
   btn.id = 'season-fab';
 
-  function label() { btn.textContent = on() ? 'View regular site' : 'Trick or treat'; }
+  function label() { btn.textContent = on() ? 'View regular site' : 'Trick or Treat'; }
 
   btn.addEventListener('click', function () {
     if (on()) {

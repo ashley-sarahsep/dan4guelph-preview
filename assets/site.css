@@ -1085,21 +1085,39 @@ html[data-season="halloween"]:not([data-contrast="high"]) .footer-inner { positi
    nothing, so it is not there. The label says what the next press does, which
    is why there is no aria-pressed on it - a toggle that also renames itself
    announces its state twice and contradicts itself half the time. */
+/* Orange on black on the regular site, at the campaign's request on 16 Oct
+   2026: the page is otherwise cyan and white, and this is meant to be found.
+   The two colours are literals rather than tokens because they belong to the
+   Halloween palette, not the campaign's - pulling them into :root would put a
+   pumpkin in the brand set for the sake of one button. Pumpkin on near-black
+   is 6.85:1 and the hover inverts to the same 6.85:1, both clear of AA at the
+   button's 16px. */
 .season-fab {
   position: fixed; left: 16px; bottom: 16px; z-index: 150;
-  background: var(--ink-ground); color: var(--white);
-  border: var(--bw) solid var(--white);
+  background: #141414; color: #FF7518;
+  border: var(--bw) solid #FF7518;
   border-radius: 999px; padding: 12px 18px;
   font-weight: 700; font-size: 1rem; min-height: 52px;
   box-shadow: 0 4px 16px rgba(7, 31, 39, 0.35);
   cursor: pointer;
 }
-.season-fab:hover { background: var(--teal-ground); }
+.season-fab:hover { background: #FF7518; color: #141414; }
+/* High contrast flattens it like everything else. Orange on black is legible
+   enough on its own, but that mode exists to remove the choice. */
+html[data-contrast="high"] .season-fab {
+  background: #000000; color: #FFFFFF; border-color: #FFFFFF;
+}
+html[data-contrast="high"] .season-fab:hover {
+  background: #FFFFFF; color: #000000; border-color: #000000;
+}
+/* Once the skin is on, the orange has a whole page of its own and the button
+   steps back to the violet. The text has to go white with it: pumpkin on
+   --crimson is 2.44:1. */
 html[data-season="halloween"]:not([data-contrast="high"]) .season-fab {
-  background: var(--crimson); border-color: var(--white);
+  background: var(--crimson); color: var(--white); border-color: var(--white);
 }
 html[data-season="halloween"]:not([data-contrast="high"]) .season-fab:hover {
-  background: var(--crimson-hi);
+  background: var(--crimson-hi); color: var(--white);
 }
 /* Two pills on one 360px row is 310px of 328px available, so they fit, but
    only just - shorten a label before adding a third. */
