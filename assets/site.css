@@ -1079,6 +1079,147 @@ html[data-season="halloween"]:not([data-contrast="high"]) .site-footer::before {
 }
 html[data-season="halloween"]:not([data-contrast="high"]) .footer-inner { position: relative; }
 
+/* --- Halloween easter eggs ------------------------------------------------ */
+/* Three of them, all built by the script and all removed again when the skin
+   goes off: a spider that drops from the hero's right-hand cobweb, a pumpkin
+   hidden in the footer, and three bats that cross the hero once on the press
+   that turns the skin on.
+
+   Everything here is guarded the same way the skin is. A reader in high
+   contrast gets no eggs at all - that mode is for seeing the page, not for
+   finding things in it - and the guard means the script can create them
+   without having to watch the contrast attribute itself. */
+html[data-contrast="high"] .hw-spider,
+html[data-contrast="high"] .hw-pumpkin { display: none; }
+
+/* The spider.
+   Rather than move the spider, the thread above it grows and pushes it down,
+   which keeps the silk attached to the web without any transform arithmetic.
+   It hangs inside the hero's right-hand web and the section's own
+   overflow:hidden trims the thread at the top. z-index 0 is the same level as
+   the webs and the drafting band, so it can never cross the copy; there is no
+   content in that corner for it to need to. */
+.hw-spider {
+  /* It is a <button>, so the browser's own chrome has to come off. */
+  background: none; border: 0; padding: 0; font: inherit;
+  position: absolute; top: 0; z-index: 0;
+  /* The silhouettes are drawn in currentColor, and --ink is near-white under
+     this skin, so both the spider and the bats come out ghost-white on the
+     pumpkin unless they are told otherwise. Caught in a screenshot, not in
+     the markup. */
+  color: var(--ink-ground);
+  right: clamp(30px, 5.4vw, 68px);
+  width: clamp(26px, 3.4vw, 38px);
+  display: flex; flex-direction: column; align-items: center;
+  cursor: pointer;
+}
+.hw-spider__thread {
+  width: 2px; height: clamp(34px, 6vw, 62px);
+  background: rgba(255, 255, 255, 0.55);
+  transition: height 760ms cubic-bezier(0.33, 1.2, 0.52, 1);
+}
+.hw-spider:hover .hw-spider__thread,
+.hw-spider.is-down .hw-spider__thread { height: clamp(120px, 17vw, 210px); }
+.hw-spider svg { display: block; width: 100%; height: auto; }
+/* No drop for a reader who asked for less motion. The global reduced-motion
+   rule only shortens the transition, which would make the spider teleport;
+   this stops it moving at all. */
+@media (prefers-reduced-motion: reduce) {
+  .hw-spider:hover .hw-spider__thread,
+  .hw-spider.is-down .hw-spider__thread { height: clamp(34px, 6vw, 62px); }
+}
+html[data-motion="reduced"] .hw-spider:hover .hw-spider__thread,
+html[data-motion="reduced"] .hw-spider.is-down .hw-spider__thread { height: clamp(34px, 6vw, 62px); }
+
+/* The hidden pumpkin. A real button, because it opens something: it takes a
+   focus ring, a 44px target and a name a screen reader can read out.
+   It sits at the TOP right of the footer, tucked into the footer's cobweb.
+   **Not the bottom corners**: both of those belong to fixed floating buttons,
+   the accessibility one right and the season one left, and a pumpkin down
+   there is covered by them and cannot be pressed at all. Found by a click
+   test, not by looking - the button was plainly visible the whole time. */
+.hw-pumpkin {
+  position: absolute; right: 10px; top: 4px; z-index: 2;
+  width: 44px; height: 44px; padding: 7px;
+  background: transparent; border: 0; cursor: pointer;
+  opacity: 0.62; transition: opacity 160ms, transform 160ms;
+}
+.hw-pumpkin:hover, .hw-pumpkin:focus-visible { opacity: 1; transform: scale(1.12); }
+.hw-pumpkin svg { display: block; width: 100%; height: auto; }
+
+/* What it opens. A native <dialog> for the same reasons the lightbox is one:
+   showModal() brings the focus trap, Escape and the top layer with it. */
+.hw-found { border: 0; padding: 0; background: transparent; max-width: min(92vw, 420px); }
+.hw-found::backdrop { background: rgba(7, 31, 39, 0.82); }
+.hw-found__inner {
+  background: var(--surface); color: var(--ink);
+  border: var(--edge) solid var(--cyan); border-radius: var(--r-photo);
+  padding: clamp(22px, 4vw, 30px);
+  display: flex; flex-direction: column; gap: 14px; align-items: flex-start;
+}
+.hw-found__art { width: 56px; height: 56px; }
+.hw-found h2 { font-size: 1.375rem; font-weight: 800; color: var(--cyan); }
+.hw-found p { color: var(--muted); }
+.hw-found__next { border-top: 2px solid var(--hairline); padding-top: 14px; }
+
+/* --- James's Quest -------------------------------------------------------- */
+/* A small parser adventure hidden behind the two eggs, built for the
+   candidate's six year old, who loves the old Sierra games. It is an homage
+   to the GENRE, not to anything of theirs: no Sierra art, no Sierra music,
+   no Daventry, no King Graham, no lines lifted from their scripts. The
+   conventions it borrows - a typed verb and noun, a score in the corner, a
+   flat refusal when you try something daft - are mechanics, which nobody
+   owns. Keep it that way if you extend it.
+
+   Everything the game says is text. The scene drawings are aria-hidden and
+   carry no information that is not also in the prose, so the whole thing is
+   playable by someone who cannot see them, and every response lands in an
+   aria-live log. The suggestion buttons exist because a six year old types
+   slowly, and because they make it work on a phone. */
+.quest { border: 0; padding: 0; background: transparent; max-width: min(96vw, 680px); width: 100%; }
+.quest::backdrop { background: rgba(5, 3, 10, 0.9); }
+.quest__inner {
+  background: #171320; color: #F7F2E8;
+  border: var(--edge) solid #FF7518; border-radius: var(--r-photo);
+  overflow: hidden;
+}
+.quest__bar {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  background: #0B0812; padding: 10px 16px;
+  font-family: var(--font-head); font-weight: 700; font-size: 0.9375rem;
+  color: #FFA500; border-bottom: 2px solid #3A2F4F;
+}
+.quest__scene { display: block; width: 100%; height: auto; background: #0E0A17; }
+.quest__body { padding: clamp(16px, 3vw, 24px); display: flex; flex-direction: column; gap: 14px; }
+.quest__log {
+  display: flex; flex-direction: column; gap: 10px;
+  max-height: 30vh; overflow-y: auto;
+  font-size: 1.0625rem; line-height: 1.55;
+}
+.quest__log p { color: #EFE6D8; }
+/* What the player typed, echoed back the way a parser game does. */
+.quest__log p.is-you { color: #FFB84D; font-weight: 700; }
+.quest__form { display: flex; gap: 8px; flex-wrap: wrap; }
+.quest__input {
+  flex: 1 1 12em; min-width: 0;
+  background: #0B0812; color: #F7F2E8;
+  border: 2px solid #6A5B86; border-radius: var(--r-ctl);
+  padding: 12px 14px; font-size: 1rem; min-height: 46px;
+}
+.quest__input::placeholder { color: #B9AEC9; }
+.quest__hints { display: flex; gap: 8px; flex-wrap: wrap; }
+/* Suggestions, not decoration: each one is a real button that types itself in
+   and submits, so the game is fully playable by tapping. */
+.quest__hint {
+  background: #2A2139; color: #FFC46B;
+  border: 2px solid #6A5B86; border-radius: 999px;
+  padding: 9px 14px; font-size: 0.9375rem; font-weight: 700;
+  min-height: 44px; cursor: pointer;
+}
+.quest__hint:hover { background: #6A0DAD; color: #FFFFFF; border-color: #FFFFFF; }
+.quest__foot { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.quest__note { font-size: 0.875rem; color: #C3B6A4; }
+
 /* --- The season switch ---------------------------------------------------- */
 /* Bottom left, mirroring the accessibility button bottom right, and built by
    the script for the same reason that one is: with scripting off it would do
