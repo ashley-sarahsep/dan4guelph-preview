@@ -246,6 +246,46 @@
 })();
 
 /* ---------------------------------------------------------------------------
+   Season switch.
+   A Halloween skin the reader turns on and off; the stylesheet does the work
+   off html[data-season]. Built here rather than written into the markup
+   because with scripting off it would be a button that does nothing, which is
+   the same reason the accessibility panel is not in the markup either. The
+   choice is remembered in localStorage on the reader's own device, like the
+   accessibility settings, and the inline script in <head> re-applies it
+   before first paint so the page never flashes the wrong way round.
+   The label always says what the next press does.
+   --------------------------------------------------------------------------- */
+(function () {
+  var KEY = 'atkinson-season';
+  var root = document.documentElement;
+  if (!document.body) return;
+
+  function on() { return root.getAttribute('data-season') === 'halloween'; }
+
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'season-fab';
+  btn.id = 'season-fab';
+
+  function label() { btn.textContent = on() ? 'View regular site' : 'Trick or treat'; }
+
+  btn.addEventListener('click', function () {
+    if (on()) {
+      root.removeAttribute('data-season');
+      try { localStorage.removeItem(KEY); } catch (e) {}
+    } else {
+      root.setAttribute('data-season', 'halloween');
+      try { localStorage.setItem(KEY, 'halloween'); } catch (e) {}
+    }
+    label();
+  });
+
+  label();
+  document.body.appendChild(btn);
+})();
+
+/* ---------------------------------------------------------------------------
    Keep --anchor-offset in step with the header.
    The sticky header is not one height: two rows below 860px, one above, and
    every accessibility mode rewraps it - measured between 73px and 203px. The

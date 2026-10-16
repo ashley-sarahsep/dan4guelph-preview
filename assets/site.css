@@ -14,6 +14,13 @@
   --ink-deep:   #071F27;  /* footer, the drafting band                        */
   --cyan:       #1499B8;  /* borders, accents, icon tiles, footer top rule    */
   --teal:       #0B6C85;  /* links, headings on light grounds                 */
+  /* The Donate button's cyan. It is NOT --cyan: the campaign asked for white
+     text on that button, and white on --cyan is 3.34:1, which clears AA only
+     as large text and the button is 16px. This is the same hue darkened until
+     white reaches 4.97:1, so it still reads as the campaign cyan and carries
+     white at any size. Do not use it as a heading colour - --cyan is the one
+     that pairs with dark text. */
+  --cyan-deep:  #107A93;
   --pale:       #E7F3F7;  /* tinted panels, icon tile fills, hero gradient    */
   --light-cyan: #8FD3E6;  /* footer column headings                           */
   /* The Wellington-Dufferin Education Affiliates Committee's own yellow, for
@@ -30,7 +37,18 @@
   --crimson-hi: #B81C44;  /* CTA hover, link hover on light grounds           */
   --crimson-sh: #8E1233;  /* 3px hard shadow under crimson buttons, error text */
   --page:       #F7F8F7;  /* page + alternating section background           */
-  --white:      #FFFFFF;
+  --white:      #FFFFFF;  /* literal white: text and knobs on dark grounds     */
+  /* Grounds are separate tokens from the text colours they happen to match
+     today, because a theme can invert one without the other. --surface is
+     every panel and card that reads as "white paper"; --ink-ground and
+     --teal-ground are the dark fills that carry white text. In the default
+     palette each is identical to the text token it shadows; in the Halloween
+     palette --surface goes dark while --white stays white, and --ink goes
+     near-white while --ink-ground stays dark. Use the -ground tokens for
+     backgrounds and the plain ones for text. */
+  --surface:    #FFFFFF;
+  --ink-ground: #0C2E38;
+  --teal-ground:#0B6C85;
   --hairline:   #C9CFD2;
   --muted:      #3D5560;  /* secondary copy                                   */
   --muted-2:    #4A5A61;  /* captions, fine print                             */
@@ -115,11 +133,15 @@ html[data-spacing="on"] summary { margin-bottom: 0.35em; }
    Backgrounds flatten to pure white or pure black, hairlines go solid. */
 html[data-contrast="high"] {
   --ink: #000000;
+  --ink-ground: #000000;
   --ink-deep: #000000;
+  --surface: #FFFFFF;
+  --teal-ground: #00404F;
   --muted: #000000;
   --muted-2: #000000;
   --teal: #00404F;
   --cyan: #00404F;
+  --cyan-deep: #00404F;
   --pale: #FFFFFF;
   --page: #FFFFFF;
   --hairline: #000000;
@@ -138,7 +160,7 @@ html[data-contrast="high"] a { text-decoration-thickness: 3px; }
 html[data-focus="enhanced"] :focus {
   outline: 4px solid #FFFFFF !important;
   outline-offset: 3px !important;
-  box-shadow: 0 0 0 8px var(--ink), 0 0 0 11px #FFD400 !important;
+  box-shadow: 0 0 0 8px var(--ink-ground), 0 0 0 11px #FFD400 !important;
   border-radius: 4px;
 }
 
@@ -283,7 +305,7 @@ a:hover { color: var(--crimson-hi); }
 :focus-visible {
   outline: 3px solid #FFFFFF;
   outline-offset: 2px;
-  box-shadow: 0 0 0 6px var(--ink);
+  box-shadow: 0 0 0 6px var(--ink-ground);
   border-radius: 4px;
 }
 summary::-webkit-details-marker { display: none; }
@@ -300,7 +322,7 @@ main:focus { outline: none; }
 /* --- Layout -------------------------------------------------------------- */
 .wrap { max-width: var(--wrap); margin: 0 auto; padding: var(--pad-y) var(--pad-x); }
 .section { scroll-margin-top: var(--anchor-offset); border-bottom: var(--bw) solid var(--hairline); }
-.section--white { background: var(--white); }
+.section--white { background: var(--surface); }
 .section--page  { background: var(--page); }
 .section--pale  { background: var(--pale); }
 /* The share block sits on the hero's cyan, at the campaign's request on
@@ -317,7 +339,7 @@ main:focus { outline: none; }
    5.09:1 becomes 1.85:1. Flip to white, exactly as the role head does. */
 html[data-contrast="high"] .section--cyan .h2,
 html[data-contrast="high"] .section--cyan .lede { color: #FFFFFF; }
-.section--dark  { background: var(--ink); color: var(--white); border-bottom-color: var(--ink); }
+.section--dark  { background: var(--ink-ground); color: var(--white); border-bottom-color: var(--ink-ground); }
 .stack { display: flex; flex-direction: column; }
 .section-head { display: flex; flex-direction: column; gap: 14px; max-width: 44em; }
 h1, h2, h3, .h2, .h2--sm, .about-h, .hero-name {
@@ -354,22 +376,21 @@ h1, h2, h3, .h2, .h2--sm, .about-h, .hero-name {
 }
 .btn--primary { background: var(--crimson); color: var(--white); box-shadow: var(--shadow-cta); }
 .btn--primary:hover { background: var(--crimson-hi); color: var(--white); }
-.btn--outline { background: var(--white); color: var(--ink); border: var(--bw) solid var(--ink); }
-.btn--outline:hover { background: var(--ink); color: var(--white); }
-.btn--dark { background: var(--ink); color: var(--white); }
-/* Cyan, at the campaign's request. The text is --ink-deep rather than white
-   because white on --cyan is 3.34:1 and fails for button-sized text, while
-   --ink-deep on it is 5.09:1. Hover goes to --teal and flips the text to white
-   (6.00:1) - --ink-deep on --teal is only 2.83:1, so the text colour has to
-   move with the background. Same pairing as .btn--dark:hover. */
-.btn--donate { background: var(--cyan); color: var(--ink-deep); box-shadow: 0 3px 0 var(--teal); }
-.btn--donate:hover { background: var(--teal); color: var(--white); }
-/* High contrast resolves --cyan to #00404F and --ink-deep to black, which is
-   1.84:1 - the same trap the cyan section heads fall into. White on #00404F is
-   11.37:1, so the text flips there. Caught by axe, not by eye. */
-html[data-contrast="high"] .btn--donate,
-html[data-contrast="high"] .btn--donate:hover { color: #FFFFFF; }
-.btn--dark:hover { background: var(--teal); color: var(--white); }
+.btn--outline { background: var(--surface); color: var(--ink); border: var(--bw) solid var(--ink); }
+.btn--outline:hover { background: var(--ink-ground); color: var(--white); }
+.btn--dark { background: var(--ink-ground); color: var(--white); }
+/* Cyan, at the campaign's request, with white text since 16 Oct 2026. It
+   carried --ink-deep before that, because white on --cyan is 3.34:1 and the
+   button is 16px, where AA wants 4.5:1. Rather than shrink the ask or enlarge
+   the button, the ground moved to --cyan-deep, the same hue darkened until
+   white reaches 4.97:1. Hover goes to --ink (13.3:1) rather than --teal: at
+   6.00:1 --teal is only a shade off --cyan-deep and the hover was invisible.
+   The 3px hard shadow is --ink for the same reason - against --teal it had
+   almost nothing to show. No high-contrast override is needed now: that mode
+   resolves --cyan-deep to #00404F, where white is 11.37:1. */
+.btn--donate { background: var(--cyan-deep); color: var(--white); box-shadow: 0 3px 0 var(--ink-ground); }
+.btn--donate:hover { background: var(--ink-ground); color: var(--white); }
+.btn--dark:hover { background: var(--teal-ground); color: var(--white); }
 .btn--block { display: block; width: 100%; }
 .btn--lg { font-size: 1.125rem; padding: 16px 30px; border-radius: var(--r-card); }
 .btn--push { margin-top: auto; }
@@ -380,7 +401,7 @@ html[data-contrast="high"] .btn--donate:hover { color: #FFFFFF; }
   left: 12px;
   top: -100px;
   z-index: 200;
-  background: var(--ink);
+  background: var(--ink-ground);
   color: var(--white);
   padding: 12px 18px;
   border-radius: 0 0 var(--r-ctl) var(--r-ctl);
@@ -533,7 +554,7 @@ html[data-contrast="high"] .section--band::before { display: none; }
 .band--cards { height: calc(100% + 150px); transform: translateY(-50%) rotate(-3.5deg); }
 .hero-panel {
   position: relative; z-index: 1;
-  background: var(--white);
+  background: var(--surface);
   border-radius: var(--r-panel);
   padding: clamp(24px, 3vw, 42px);
   box-shadow: var(--shadow-photo);
@@ -630,7 +651,7 @@ html[data-contrast="high"] .section--band::before { display: none; }
   object-position: 52% center;
   /* A small radius inside the mat; the frame carries the outer corner. */
   border-radius: 3px;
-  background: var(--white);
+  background: var(--surface);
 }
 
 /* --- Photo slots -------------------------------------------------------- */
@@ -730,7 +751,7 @@ html[data-contrast="high"] #role-h { color: #FFFFFF; }
   grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
 }
 .role-card {
-  background: var(--white); color: var(--ink);
+  background: var(--surface); color: var(--ink);
   border: var(--edge) solid var(--ink);
   border-radius: var(--r-photo);
   padding: 22px; display: flex; flex-direction: column; gap: 12px;
@@ -773,7 +794,7 @@ html[data-contrast="high"] .myth-strip .lede { color: #FFFFFF; }
 /* The cards were --page on a --page section, so only the hairline separated
    them from the ground. White plus a resting shadow is what makes them cards. */
 .pillar {
-  background: var(--white); border: var(--bw) solid var(--hairline);
+  background: var(--surface); border: var(--bw) solid var(--hairline);
   border-radius: var(--r-photo);
   box-shadow: var(--shadow-card);
   padding: 28px; display: flex; flex-direction: column; gap: 14px;
@@ -823,7 +844,7 @@ html[data-contrast="high"] .myth-strip .lede { color: #FFFFFF; }
    works with JavaScript off; the summary is a 44px target and keeps the focus
    ring the rest of the page uses. */
 .disclosure {
-  background: var(--white); border: var(--bw) solid var(--hairline);
+  background: var(--surface); border: var(--bw) solid var(--hairline);
   border-radius: var(--r-card);
 }
 .disclosure + .disclosure { margin-top: 12px; }
@@ -848,7 +869,7 @@ html[data-motion="reduced"] .chev { transition: none; }
 /* --- Voter info ---------------------------------------------------------- */
 .voter-inner { max-width: var(--wrap); margin: 0 auto; padding: var(--pad-y) var(--pad-x); display: flex; flex-direction: column; gap: 28px; }
 .info-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); }
-.info-card { background: var(--white); border: var(--bw) solid var(--hairline); border-radius: var(--r-card); padding: 24px; display: flex; flex-direction: column; gap: 12px; }
+.info-card { background: var(--surface); border: var(--bw) solid var(--hairline); border-radius: var(--r-card); padding: 24px; display: flex; flex-direction: column; gap: 12px; }
 .info-card h3 { font-size: 1.25rem; font-weight: 700; }
 .info-card p { color: var(--muted); }
 .info-date { font-family: var(--font-head); font-size: 1.5rem; font-weight: 800; color: var(--ink); }
@@ -864,7 +885,7 @@ html[data-motion="reduced"] .chev { transition: none; }
    are not, so the section still does its job with scripting off. */
 .share-inner { max-width: var(--wrap); margin: 0 auto; padding: var(--pad-y) var(--pad-x); display: flex; flex-direction: column; gap: 28px; }
 .addr-card {
-  background: var(--white); color: var(--ink);
+  background: var(--surface); color: var(--ink);
   border: var(--bw) solid var(--hairline); border-radius: var(--r-card);
   padding: clamp(22px, 3vw, 32px); display: flex; flex-direction: column; gap: 14px;
   max-width: 44em;
@@ -954,14 +975,14 @@ html.js .js-only { display: inline-block; }
   display: block; width: 100%; height: auto;
   max-height: 72vh; object-fit: contain;
   border-radius: calc(var(--r-photo) - 10px);
-  background: var(--white);
+  background: var(--surface);
 }
 /* The caption sits on its own white strip rather than on the mat. White on
    --cyan is 3.34:1, and ink on it is 5.09:1 in the normal palette but black on
    #00404F under high contrast, which fails. On white both modes are safe. */
 .lightbox__cap {
   color: var(--ink); font-weight: 600; font-size: 0.9375rem;
-  background: var(--white); border-radius: calc(var(--r-photo) - 14px);
+  background: var(--surface); border-radius: calc(var(--r-photo) - 14px);
   padding: 10px 14px; margin: 0;
 }
 .lightbox__close { align-self: flex-start; margin: 0 6px 6px; }
@@ -979,6 +1000,113 @@ html[data-motion="reduced"] .photo-zoom img { transition: none; }
 
 /* --- Decorative glyphs --------------------------------------------------- */
 
+/* --- Season: Halloween ---------------------------------------------------- */
+/* A skin the reader turns on from the floating button, not a date switch.
+   Everything below is tokens plus a short list of rules where a colour was
+   hard-coded or where a token is used as a ground rather than as text. The
+   markup does not change at all.
+
+   The whole block is guarded by :not([data-contrast="high"]). High contrast
+   exists to flatten the page to one pure pairing, and a seasonal skin must
+   never win over an accessibility setting. The guard does that by source
+   order rather than by hoping - turn both on and the page is plain high
+   contrast, no pumpkin, no webs.
+
+   Colours are the campaign's chosen Halloween palette: #FF7518 pumpkin,
+   #FFA500 orange, #9400D3 and #6A0DAD and #8A2BE2 violet, #1C1C1C raisin
+   black. The two surfaces either side of --page are derived from them rather
+   than taken from the sheet, because the palette has no mid-dark neutral. */
+html[data-season="halloween"]:not([data-contrast="high"]) {
+  --ink:         #F7F2E8;  /* candlelight, the body text                      */
+  --ink-ground:  #1A1226;  /* dark buttons, the skip link, the focus shadow   */
+  --ink-deep:    #0D0A14;  /* footer, the band, the endorsement card          */
+  --surface:     #262134;  /* cards and the white sections                    */
+  --page:        #1C1C1C;  /* page + alternating sections                     */
+  --muted:       #D4C8B8;
+  --muted-2:     #C3B6A4;
+  --cyan:        #FF7518;  /* pumpkin: accent headings AND the lit grounds    */
+  --cyan-deep:   #8A2BE2;  /* the Donate button, white text at 5.96:1         */
+  --teal:        #FFA500;  /* links and small headings, 8.63:1 on --page      */
+  --teal-ground: #6A0DAD;  /* hover fills that carry white text               */
+  --pale:        #2C2338;
+  --light-cyan:  #C9A0FF;
+  --soft-cyan:   #E6DBCB;
+  --crimson:     #9400D3;
+  --crimson-hi:  #6A0DAD;
+  --crimson-sh:  #3D0070;
+  --hairline:    #635A78;
+  --error-bg:    #3A1620;
+}
+/* --cyan is the one token that is a ground AND a text colour, and it survives
+   the inversion because pumpkin is light: 6.34:1 as a heading on --page, and
+   7.29:1 the other way up under --ink-deep on the hero, role and share
+   grounds. Those three heads keep their --ink-deep and need no override here,
+   which is the whole reason the ground colour had to stay light. */
+
+/* The header is a hard-coded translucent white, so it needs saying again. */
+html[data-season="halloween"]:not([data-contrast="high"]) .site-header {
+  background: rgba(22, 18, 30, 0.94);
+}
+/* Link hover is --crimson-hi, a deep violet here, which would vanish into the
+   page. Links brighten to pumpkin instead - the same move the footer already
+   makes on its dark ground. */
+html[data-season="halloween"]:not([data-contrast="high"]) a:hover { color: var(--cyan); }
+html[data-season="halloween"]:not([data-contrast="high"]) .footer-legal { border-top-color: #4A3B63; }
+
+/* Cobwebs. Two corner webs on the lit grounds - the hero and the trustee
+   explainer share .section--band, so one rule hangs them in both - and one in
+   the footer. They are background images on a pseudo-element, so they are
+   decorative by construction: no markup, nothing in the accessibility tree,
+   nothing to read out. z-index 0 keeps them under everything that carries
+   content, the same level the cross-hatch sits at, and the section's own
+   overflow:hidden trims them to the corner. */
+html[data-season="halloween"]:not([data-contrast="high"]) .section--band::after {
+  content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 160' width='160' height='160'%3E%3Cpath d='M0 0L238.2 29.2M0 0L224.1 86.0M0 0L194.2 141.1M0 0L151.0 186.5M0 0L97.6 219.3M0 0L37.5 237.0M37.7 4.6Q29.5 7.4 35.5 13.6Q26.7 14.5 30.7 22.3Q22.1 20.9 23.9 29.5Q15.9 25.9 15.5 34.7Q8.6 29.1 5.9 37.5M65.5 8.0Q51.2 12.8 61.6 23.7Q46.4 25.2 53.4 38.8Q38.3 36.3 41.5 51.3Q27.6 45.0 26.8 60.3Q15.0 50.6 10.3 65.2M95.3 11.7Q74.5 18.6 89.6 34.4Q67.5 36.6 77.7 56.4Q55.7 52.9 60.4 74.6Q40.1 65.5 39.0 87.7Q21.8 73.6 15.0 94.8M127.0 15.6Q99.4 24.8 119.5 45.9Q90.0 48.9 103.6 75.2Q74.3 70.5 80.6 99.5Q53.5 87.3 52.1 116.9Q29.1 98.2 20.0 126.4M158.8 19.5Q124.2 31.0 149.4 57.3Q112.5 61.1 129.4 94.0Q92.8 88.1 100.7 124.3Q66.9 109.1 65.1 146.2Q36.4 122.7 25.0 158.0' fill='none' stroke='%23ffffff' stroke-width='1.7' stroke-linecap='round'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 160' width='160' height='160'%3E%3Cg transform='translate(160,0) scale(-1,1)'%3E%3Cpath d='M0 0L238.2 29.2M0 0L224.1 86.0M0 0L194.2 141.1M0 0L151.0 186.5M0 0L97.6 219.3M0 0L37.5 237.0M37.7 4.6Q29.5 7.4 35.5 13.6Q26.7 14.5 30.7 22.3Q22.1 20.9 23.9 29.5Q15.9 25.9 15.5 34.7Q8.6 29.1 5.9 37.5M65.5 8.0Q51.2 12.8 61.6 23.7Q46.4 25.2 53.4 38.8Q38.3 36.3 41.5 51.3Q27.6 45.0 26.8 60.3Q15.0 50.6 10.3 65.2M95.3 11.7Q74.5 18.6 89.6 34.4Q67.5 36.6 77.7 56.4Q55.7 52.9 60.4 74.6Q40.1 65.5 39.0 87.7Q21.8 73.6 15.0 94.8M127.0 15.6Q99.4 24.8 119.5 45.9Q90.0 48.9 103.6 75.2Q74.3 70.5 80.6 99.5Q53.5 87.3 52.1 116.9Q29.1 98.2 20.0 126.4M158.8 19.5Q124.2 31.0 149.4 57.3Q112.5 61.1 129.4 94.0Q92.8 88.1 100.7 124.3Q66.9 109.1 65.1 146.2Q36.4 122.7 25.0 158.0' fill='none' stroke='%23ffffff' stroke-width='1.7' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: no-repeat, no-repeat;
+  background-position: left top, right top;
+  background-size: clamp(110px, 16vw, 190px) auto, clamp(110px, 16vw, 190px) auto;
+}
+html[data-season="halloween"]:not([data-contrast="high"]) .site-footer { position: relative; }
+html[data-season="halloween"]:not([data-contrast="high"]) .site-footer::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  opacity: 0.4;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 160' width='160' height='160'%3E%3Cg transform='translate(160,0) scale(-1,1)'%3E%3Cpath d='M0 0L238.2 29.2M0 0L224.1 86.0M0 0L194.2 141.1M0 0L151.0 186.5M0 0L97.6 219.3M0 0L37.5 237.0M37.7 4.6Q29.5 7.4 35.5 13.6Q26.7 14.5 30.7 22.3Q22.1 20.9 23.9 29.5Q15.9 25.9 15.5 34.7Q8.6 29.1 5.9 37.5M65.5 8.0Q51.2 12.8 61.6 23.7Q46.4 25.2 53.4 38.8Q38.3 36.3 41.5 51.3Q27.6 45.0 26.8 60.3Q15.0 50.6 10.3 65.2M95.3 11.7Q74.5 18.6 89.6 34.4Q67.5 36.6 77.7 56.4Q55.7 52.9 60.4 74.6Q40.1 65.5 39.0 87.7Q21.8 73.6 15.0 94.8M127.0 15.6Q99.4 24.8 119.5 45.9Q90.0 48.9 103.6 75.2Q74.3 70.5 80.6 99.5Q53.5 87.3 52.1 116.9Q29.1 98.2 20.0 126.4M158.8 19.5Q124.2 31.0 149.4 57.3Q112.5 61.1 129.4 94.0Q92.8 88.1 100.7 124.3Q66.9 109.1 65.1 146.2Q36.4 122.7 25.0 158.0' fill='none' stroke='%23ffffff' stroke-width='1.7' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right top;
+  background-size: clamp(120px, 18vw, 210px) auto;
+}
+html[data-season="halloween"]:not([data-contrast="high"]) .footer-inner { position: relative; }
+
+/* --- The season switch ---------------------------------------------------- */
+/* Bottom left, mirroring the accessibility button bottom right, and built by
+   the script for the same reason that one is: with scripting off it would do
+   nothing, so it is not there. The label says what the next press does, which
+   is why there is no aria-pressed on it - a toggle that also renames itself
+   announces its state twice and contradicts itself half the time. */
+.season-fab {
+  position: fixed; left: 16px; bottom: 16px; z-index: 150;
+  background: var(--ink-ground); color: var(--white);
+  border: var(--bw) solid var(--white);
+  border-radius: 999px; padding: 12px 18px;
+  font-weight: 700; font-size: 1rem; min-height: 52px;
+  box-shadow: 0 4px 16px rgba(7, 31, 39, 0.35);
+  cursor: pointer;
+}
+.season-fab:hover { background: var(--teal-ground); }
+html[data-season="halloween"]:not([data-contrast="high"]) .season-fab {
+  background: var(--crimson); border-color: var(--white);
+}
+html[data-season="halloween"]:not([data-contrast="high"]) .season-fab:hover {
+  background: var(--crimson-hi);
+}
+/* Two pills on one 360px row is 310px of 328px available, so they fit, but
+   only just - shorten a label before adding a third. */
+@media (max-width: 420px) {
+  .season-fab { font-size: 0.9375rem; padding: 12px 14px; }
+}
+
 /* --- Accessibility panel -------------------------------------------------- */
 /* Hidden entirely without JS — the controls would do nothing. */
 .a11y { display: none; }
@@ -987,14 +1115,14 @@ html.js .a11y { display: block; }
 .a11y__fab {
   position: fixed; right: 16px; bottom: 16px; z-index: 150;
   display: flex; align-items: center; gap: 10px;
-  background: var(--ink); color: var(--white);
+  background: var(--ink-ground); color: var(--white);
   border: var(--bw) solid var(--white);
   border-radius: 999px; padding: 12px 20px;
   font-weight: 700; font-size: 1rem; min-height: 52px;
   box-shadow: 0 4px 16px rgba(7, 31, 39, 0.35);
   cursor: pointer;
 }
-.a11y__fab:hover { background: var(--teal); }
+.a11y__fab:hover { background: var(--teal-ground); }
 .a11y__fab-icon { font-size: 1.375rem; line-height: 1; }
 @media (max-width: 420px) { .a11y__fab-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } .a11y__fab { padding: 12px; } }
 
@@ -1004,23 +1132,23 @@ html.js .a11y { display: block; }
   right: 16px; bottom: 16px; left: 16px;
   max-width: 420px; margin-left: auto;
   max-height: calc(100vh - 32px); overflow-y: auto;
-  background: var(--white); color: var(--ink);
+  background: var(--surface); color: var(--ink);
   border: var(--bw) solid var(--ink); border-radius: var(--r-card);
   box-shadow: 0 12px 40px rgba(7, 31, 39, 0.4);
   display: flex; flex-direction: column;
 }
-.a11y__head { position: sticky; top: 0; z-index: 1; background: var(--white);
+.a11y__head { position: sticky; top: 0; z-index: 1; background: var(--surface);
   padding: 22px 56px 16px 22px; border-bottom: var(--bw) solid var(--hairline); }
 .a11y__head h2 { font-size: 1.375rem; font-weight: 800; }
 .a11y__head p { color: var(--muted); font-size: 0.9375rem; margin-top: 4px; }
 .a11y__close {
   position: absolute; top: 14px; right: 14px;
   width: 44px; height: 44px; display: grid; place-items: center;
-  background: var(--white); color: var(--ink);
+  background: var(--surface); color: var(--ink);
   border: var(--bw) solid var(--ink); border-radius: var(--r-ctl);
   font-size: 1.25rem; line-height: 1; cursor: pointer;
 }
-.a11y__close:hover { background: var(--ink); color: var(--white); }
+.a11y__close:hover { background: var(--ink-ground); color: var(--white); }
 .a11y__body { padding: 6px 22px 12px; }
 .a11y__group { border: 0; margin: 0; padding: 16px 0 4px; }
 .a11y__group + .a11y__group { border-top: 1px solid var(--hairline); }
@@ -1038,7 +1166,7 @@ html.js .a11y { display: block; }
   appearance: none; -webkit-appearance: none;
   flex: none; position: relative; margin: 2px 0 0;
   width: 56px; height: 32px; border-radius: 999px;
-  background: var(--white); border: var(--bw) solid var(--ink);
+  background: var(--surface); border: var(--bw) solid var(--ink);
   cursor: pointer; transition: background 150ms;
 }
 .a11y__cb::after {
@@ -1046,8 +1174,8 @@ html.js .a11y { display: block; }
   width: 22px; height: 22px; border-radius: 50%;
   background: var(--ink); transition: transform 150ms;
 }
-.a11y__cb:checked { background: var(--teal); border-color: var(--teal); }
-.a11y__cb:checked::after { background: var(--white); transform: translateX(24px); }
+.a11y__cb:checked { background: var(--teal-ground); border-color: var(--teal-ground); }
+.a11y__cb:checked::after { background: var(--surface); transform: translateX(24px); }
 .a11y__cb:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .a11y__foot { display: flex; flex-wrap: wrap; gap: 12px; padding: 8px 22px 4px; border-top: var(--bw) solid var(--hairline); padding-top: 16px; }
