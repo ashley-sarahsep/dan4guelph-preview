@@ -270,12 +270,39 @@
 
   function label() { btn.textContent = on() ? 'View regular site' : 'Trick or Treat'; }
 
+  /* Any <img> carrying data-season-src swaps picture, alt text and intrinsic
+     size with the skin. The alt goes with it because a costume photograph
+     described as "outdoors among trees" is worse than no description, and the
+     width/height go with it because the two files are not the same shape -
+     leaving the old pair would reserve the wrong box while the new one
+     loads. The originals are read off the element each time rather than
+     cached up front, so this still works if anything else ever edits them. */
+  function photos(halloween) {
+    var imgs = document.querySelectorAll('img[data-season-src]');
+    [].forEach.call(imgs, function (img) {
+      var from = halloween ? ['src', 'alt', 'width', 'height']
+                           : ['data-season-src', 'data-season-alt', 'data-season-w', 'data-season-h'];
+      var to   = halloween ? ['data-season-src', 'data-season-alt', 'data-season-w', 'data-season-h']
+                           : ['src', 'alt', 'width', 'height'];
+      var held = from.map(function (a) { return img.getAttribute(a); });
+      var next = to.map(function (a) { return img.getAttribute(a); });
+      to.forEach(function (a, i) { img.setAttribute(a, held[i]); });
+      from.forEach(function (a, i) { img.setAttribute(a, next[i]); });
+    });
+  }
+
+  /* A stored choice is already on <html> by now, so catch up before painting
+     anything else. */
+  if (on()) photos(true);
+
   btn.addEventListener('click', function () {
     if (on()) {
       root.removeAttribute('data-season');
+      photos(false);
       try { localStorage.removeItem(KEY); } catch (e) {}
     } else {
       root.setAttribute('data-season', 'halloween');
+      photos(true);
       try { localStorage.setItem(KEY, 'halloween'); } catch (e) {}
     }
     label();

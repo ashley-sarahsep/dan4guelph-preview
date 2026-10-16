@@ -99,8 +99,17 @@
       <div class="photo-slot photo-slot--hero">
         <div aria-hidden="true" class="band"></div>
         <div class="photo-frame">
+          <!-- data-season-* is the Halloween swap. The script exchanges src,
+               alt and the intrinsic size when the skin goes on, and puts all
+               three back when it comes off. A second <img> hidden with CSS
+               would be simpler to read, but browsers fetch a display:none
+               image anyway, so every reader would pay for a costume
+               photograph they never see. -->
           <img src="assets/dan-atkinson.jpg" width="1600" height="1067"
                alt="Dan Atkinson, smiling, outdoors among trees."
+               data-season-src="assets/dan-halloween.jpg"
+               data-season-w="761" data-season-h="761"
+               data-season-alt="Dan at a Halloween party in a white costume and a gold paper crown."
                class="hero-photo" />
         </div>
       </div>
