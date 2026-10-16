@@ -232,6 +232,17 @@
       'Could not copy. Select the address above instead.');
   })();
 
+  /* The donation section shows the same address and copies it the same way. */
+  (function () {
+    var box = document.getElementById('donate-addr');
+    if (!box) return;
+    wire(document.getElementById('donate-copy'),
+      document.getElementById('donate-status'),
+      function () { return box.textContent.trim(); },
+      'Copied. Paste it into your email app.',
+      'Could not copy. Select the address above instead.');
+  })();
+
 })();
 
 /* ---------------------------------------------------------------------------

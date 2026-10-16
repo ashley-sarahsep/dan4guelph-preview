@@ -16,6 +16,11 @@
   --teal:       #0B6C85;  /* links, headings on light grounds                 */
   --pale:       #E7F3F7;  /* tinted panels, icon tile fills, hero gradient    */
   --light-cyan: #8FD3E6;  /* footer column headings                           */
+  /* The Wellington-Dufferin Education Affiliates Committee's own yellow, for
+     the endorsement badge. 9.36:1 on --ink-deep and 11.55:1 on the black that
+     high contrast resolves it to - but only 1.82:1 on white, so this colour
+     NEVER carries text on a pale ground. Dark chip, yellow text, always. */
+  --gold:       #F2B705;
   --soft-cyan:  #CFE3EA;  /* body copy on dark                                */
   /* The campaign's red, rgb(212 35 81). Brighter than what it replaced, and
      still 5.05:1 against white, so white button text clears AA. The two
@@ -343,6 +348,18 @@ h1, h2, h3, .h2, .h2--sm, .about-h, .hero-name {
 .btn--outline { background: var(--white); color: var(--ink); border: var(--bw) solid var(--ink); }
 .btn--outline:hover { background: var(--ink); color: var(--white); }
 .btn--dark { background: var(--ink); color: var(--white); }
+/* Cyan, at the campaign's request. The text is --ink-deep rather than white
+   because white on --cyan is 3.34:1 and fails for button-sized text, while
+   --ink-deep on it is 5.09:1. Hover goes to --teal and flips the text to white
+   (6.00:1) - --ink-deep on --teal is only 2.83:1, so the text colour has to
+   move with the background. Same pairing as .btn--dark:hover. */
+.btn--donate { background: var(--cyan); color: var(--ink-deep); box-shadow: 0 3px 0 var(--teal); }
+.btn--donate:hover { background: var(--teal); color: var(--white); }
+/* High contrast resolves --cyan to #00404F and --ink-deep to black, which is
+   1.84:1 - the same trap the cyan section heads fall into. White on #00404F is
+   11.37:1, so the text flips there. Caught by axe, not by eye. */
+html[data-contrast="high"] .btn--donate,
+html[data-contrast="high"] .btn--donate:hover { color: #FFFFFF; }
 .btn--dark:hover { background: var(--teal); color: var(--white); }
 .btn--block { display: block; width: 100%; }
 .btn--lg { font-size: 1.125rem; padding: 16px 30px; border-radius: var(--r-card); }
@@ -523,6 +540,18 @@ html[data-contrast="high"] .section--band::before { display: none; }
 .hero-name { font-size: clamp(2.5rem, 8vw, 4.5rem); font-weight: 800; letter-spacing: -0.03em; }
 .hero-role { font-size: clamp(1.1875rem, 2.4vw, 1.5rem); font-weight: 600; color: var(--ink); max-width: 22em; }
 .hero-tag  { font-size: clamp(1.0625rem, 2vw, 1.1875rem); color: var(--muted); max-width: 26em; }
+/* Endorsement badge. Yellow on a dark chip, the way the committee sets its own
+   name - and the only way it can be done here: --gold on the white panel is
+   1.82:1 and fails outright, while on --ink-deep it is 9.36:1. align-self
+   keeps the chip the width of its text rather than the width of the panel. */
+.endorsement {
+  align-self: start;
+  background: var(--ink-deep); color: var(--gold);
+  font-family: var(--font-head); font-weight: 700;
+  font-size: clamp(0.9375rem, 1.6vw, 1.0625rem); line-height: 1.4;
+  padding: 10px 16px; border-radius: var(--r-card);
+  max-width: 24em;
+}
 /* The tagline arrives as a short line and a sentence under it, so the first
    one carries the weight and the second explains it. Cyan, the campaign's core
    colour, at 3.34:1 on the white panel: that clears AA only as LARGE text, so
@@ -723,7 +752,10 @@ html[data-contrast="high"] .myth-strip .lede { color: #FFFFFF; }
 
 /* --- Platform ------------------------------------------------------------ */
 .platform-inner { max-width: var(--wrap); margin: 0 auto; padding: var(--pad-y) var(--pad-x); display: flex; flex-direction: column; gap: 32px; }
-.pillar-grid { list-style: none; padding: 0; display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); }
+/* One card per row since 16 Oct 2026, when a fifth priority was added: five
+   cards in a two-up grid leaves an odd one out, and a row carries a longer
+   position without squeezing it. */
+.pillar-grid { list-style: none; padding: 0; display: grid; gap: 20px; grid-template-columns: 1fr; }
 /* The cards were --page on a --page section, so only the hairline separated
    them from the ground. White plus a resting shadow is what makes them cards. */
 .pillar {
@@ -732,6 +764,29 @@ html[data-contrast="high"] .myth-strip .lede { color: #FFFFFF; }
   box-shadow: var(--shadow-card);
   padding: 28px; display: flex; flex-direction: column; gap: 14px;
   transition: border-color 150ms, box-shadow 150ms;
+}
+/* Full-width rows would otherwise set body copy at the wrap's whole 1120px,
+   which is roughly 160 characters a line and unreadable. Above 860px the
+   heading and lead take a third and the body takes the rest, which keeps the
+   measure near 70 characters. The rule between them is the stacked layout's
+   top border turned on its side. */
+@media (min-width: 860px) {
+  .pillar {
+    display: grid;
+    grid-template-columns: minmax(min(260px, 100%), 1fr) 2fr;
+    /* Three rows, the third empty. The body spans all of them, and without a
+       1fr row to absorb the slack its height is shared out across the rows the
+       heading and lead sit in, which floats the lead down the card. */
+    grid-template-rows: min-content min-content 1fr;
+    column-gap: 36px; row-gap: 12px;
+    align-items: start;
+  }
+  .pillar h3, .pillar-lead { grid-column: 1; }
+  .pillar-body {
+    grid-column: 2; grid-row: 1 / -1;
+    border-top: 0; padding-top: 0; margin-top: 0;
+    border-left: var(--bw) solid var(--hairline); padding-left: 36px;
+  }
 }
 /* Hover thickens the cyan with a ring drawn outside the border rather than a
    wider border, which would shift every card in the row by 2px. */
