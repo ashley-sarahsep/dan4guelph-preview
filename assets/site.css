@@ -64,7 +64,7 @@
      site.js overwrites this with the header's real height, which is the only
      way to get it right in every accessibility mode; these values are the
      no-JS fallback and are measured in the default mode. */
-  --anchor-offset: 150px;   /* header 128px: nav on its own row */
+  --anchor-offset: 208px;   /* header 186px: pill row, scrolling nav, CTA row */
 
   --r-panel: 28px;
   /* One weight for the band's red edges and the keyline round every
@@ -79,8 +79,9 @@
   --leading: 1.6;
 }
 /* Three values, because the header is three heights in the default mode: the
-   nav has its own row below 860px (128px), then joins the pill row but still
-   wraps to two lines until 920px (122px), then fits on one (73px). The upper
+   pill, the scrolling nav and the Donate button each get a row below 860px
+   (186px), then the nav and the button join the pill row but still wrap to
+   two lines until 925px (122px), then all three fit on one (73px). The upper
    breakpoint is set at 1024 rather than 920 so a browser that wraps a little
    later still clears; an offset larger than the header only adds gap. Order
    matters - a media query adds no specificity, so the wider one has to come
@@ -413,18 +414,20 @@ html[data-contrast="high"] .site-header { background: #FFFFFF; }
   border-radius: var(--r-ctl); padding: 6px 14px;
 }
 .vote-pill span { width: 9px; height: 9px; background: var(--crimson); border-radius: 2px; display: block; }
-.main-nav { order: 2; flex: 1 1 auto; min-width: 0; }
-.nav-list { list-style: none; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; }
+/* The CTA is a sibling of the link list, not an item inside it, so the list
+   can scroll sideways on a phone while the button sits on its own row and
+   stays put. It is still inside <nav>, so it remains part of the Main
+   landmark and keeps its place in the tab order after the links. */
+.main-nav { order: 2; flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; }
+.nav-list { list-style: none; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; flex: 1 1 auto; min-width: 0; }
 .nav-link { display: inline-block; padding: 8px 2px; font-weight: 600; text-decoration: none; border-bottom: 3px solid transparent; }
 .nav-link:hover { border-bottom-color: var(--cyan); }
-.nav-cta { margin-left: auto; }
-.nav-list .btn { padding: 10px 20px; }
+.nav-cta { margin-left: auto; flex: none; padding: 10px 20px; }
 
 /* Below the desktop breakpoint the nav wrapped to three rows, making the sticky
    header 336px tall — over a third of a 360px phone screen. Scrolling it
    sideways in one row keeps every link reachable and gives the page back
-   ~180px. The Donate button stays pinned to the right edge so the primary
-   call to action never scrolls out of reach. Desktop is unchanged. */
+   ~180px. Desktop is unchanged. */
 @media (max-width: 859px) {
   .nav-list {
     flex-wrap: nowrap;
@@ -439,12 +442,15 @@ html[data-contrast="high"] .site-header { background: #FFFFFF; }
   /* On a phone the pill keeps its own row and the nav scrolls under it. */
   .main-nav { flex-basis: 100%; }
   .main-nav, .nav-list { min-width: 0; max-width: 100%; }
-  /* The CTA scrolls with the row rather than pinning to the right edge.
-     Pinned, it covered 205px of a 360px row and sliced through the link
-     beside it. The hero's full-width "How to Vote" button sits immediately
-     below, and the "Vote Oct 26, 2026" pill stays visible in the header,
-     so nothing is lost by letting this one scroll. */
-  .nav-cta { margin-left: 12px; }
+  /* The CTA gets a full-width row of its own UNDER the scrolling list. It
+     used to be the last item inside that list, which meant the one thing on
+     the page asking for money scrolled off the right-hand edge and a reader
+     who never swiped sideways never saw it. Pinning it to the right edge was
+     worse: it covered 205px of a 360px row and sliced through the link
+     beside it. Its own row costs the header about 56px on a phone and is
+     what the campaign asked for. */
+  .nav-list { flex-basis: 100%; }
+  .nav-cta { margin-left: 0; flex-basis: 100%; text-align: center; }
 }
 @media (max-width: 859px) and (prefers-reduced-motion: no-preference) {
   .nav-list { scroll-behavior: smooth; }
