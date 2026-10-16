@@ -246,6 +246,27 @@
 })();
 
 /* ---------------------------------------------------------------------------
+   Keep --anchor-offset in step with the header.
+   The sticky header is not one height: two rows below 860px, one above, and
+   every accessibility mode rewraps it - measured between 73px and 203px. The
+   breakpoint values in the stylesheet are right in the default mode and short
+   in the others, so an in-page jump could drop a heading under the header.
+   With scripting on, measure the header and keep the variable in step; with
+   it off the breakpoint values stand, which is what the page did before. The
+   22px is the clearance those values already carried.
+   --------------------------------------------------------------------------- */
+(function () {
+  var header = document.querySelector('.site-header');
+  if (!header || typeof ResizeObserver !== 'function') return;
+  function set() {
+    var h = Math.round(header.getBoundingClientRect().height);
+    document.documentElement.style.setProperty('--anchor-offset', (h + 22) + 'px');
+  }
+  new ResizeObserver(set).observe(header);
+  set();
+})();
+
+/* ---------------------------------------------------------------------------
    Photograph lightbox. The markup is already a link to the larger file, so
    this only intercepts the click when <dialog> can actually do the job.
    showModal() supplies the focus trap, Escape, the top layer and returning

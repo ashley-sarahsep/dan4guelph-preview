@@ -60,9 +60,11 @@
   --pad-y: clamp(64px, 9vw, 124px);
   --pad-x: 20px;
 
-  /* The sticky header measures 286px below 480px, 187px to 860px, 136px
-     above. A single flat offset left headings hidden behind it on phones. */
-  --anchor-offset: 150px;
+  /* Measured header height plus 22px of clearance. With scripting on,
+     site.js overwrites this with the header's real height, which is the only
+     way to get it right in every accessibility mode; these values are the
+     no-JS fallback and are measured in the default mode. */
+  --anchor-offset: 150px;   /* header 128px: nav on its own row */
 
   --r-panel: 28px;
   /* One weight for the band's red edges and the keyline round every
@@ -76,9 +78,15 @@
   --word:  0em;
   --leading: 1.6;
 }
-/* Two values, because the header is now two heights: 128px while the nav
-   has its own row, 73px once it shares one. Re-measure before changing. */
-@media (min-width: 860px) { :root { --anchor-offset: 95px; } }
+/* Three values, because the header is three heights in the default mode: the
+   nav has its own row below 860px (128px), then joins the pill row but still
+   wraps to two lines until 920px (122px), then fits on one (73px). The upper
+   breakpoint is set at 1024 rather than 920 so a browser that wraps a little
+   later still clears; an offset larger than the header only adds gap. Order
+   matters - a media query adds no specificity, so the wider one has to come
+   second. Re-measure the header before changing any of them. */
+@media (min-width: 860px)  { :root { --anchor-offset: 144px; } }
+@media (min-width: 1024px) { :root { --anchor-offset: 95px; } }
 
 /* --- Accessibility options ----------------------------------------------- */
 /* Set as data-attributes on <html> by the panel, and re-applied from
@@ -415,8 +423,8 @@ html[data-contrast="high"] .site-header { background: #FFFFFF; }
 /* Below the desktop breakpoint the nav wrapped to three rows, making the sticky
    header 336px tall — over a third of a 360px phone screen. Scrolling it
    sideways in one row keeps every link reachable and gives the page back
-   ~180px. The "How to Vote" button stays pinned to the right edge so the
-   primary call to action never scrolls out of reach. Desktop is unchanged. */
+   ~180px. The Donate button stays pinned to the right edge so the primary
+   call to action never scrolls out of reach. Desktop is unchanged. */
 @media (max-width: 859px) {
   .nav-list {
     flex-wrap: nowrap;
@@ -866,6 +874,38 @@ html[data-motion="reduced"] .chev { transition: none; }
 .addr-status { font-weight: 700; color: var(--teal); min-height: 1.5em; }
 .js-only { display: none; }
 html.js .js-only { display: inline-block; }
+
+/* --- Endorsements -------------------------------------------------------- */
+/* The endorsement is a dark chip on a white section, the same pairing as the
+   badge in the hero: --gold is 1.82:1 on white and can NEVER carry text on a
+   pale ground, so it only ever appears on --ink-deep. On that ground it is
+   9.36:1, and high contrast resolves --ink-deep to black, where it is 11.55:1,
+   so no override is needed. Body copy inside the chip is --soft-cyan (12.82:1,
+   and white under high contrast), which is the token for exactly this job.
+   A dark CARD, not a dark section - the rule against a second dark section
+   ground still holds. */
+.endorse-inner {
+  max-width: var(--wrap); margin: 0 auto; padding: var(--pad-y) var(--pad-x);
+  display: flex; flex-direction: column; gap: 24px;
+}
+.endorse-card {
+  background: var(--ink-deep); border-radius: var(--r-card);
+  border-left: 8px solid var(--gold);
+  padding: clamp(22px, 3.2vw, 36px);
+  display: flex; flex-direction: column; gap: 12px;
+  max-width: 44em;
+}
+.endorse-label {
+  color: var(--gold); font-weight: 700; font-size: 0.9375rem;
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.endorse-name {
+  font-family: var(--font-head); font-weight: 800; color: var(--white);
+  font-size: clamp(1.25rem, 3vw, 1.75rem); line-height: 1.25;
+}
+.endorse-tag { color: var(--soft-cyan); font-size: 1.0625rem; }
+.endorse-body { color: var(--muted); font-size: 1.0625rem; max-width: 44em; }
+.endorse-inner .fine { max-width: 44em; }
 
 /* --- Contact ------------------------------------------------------------- */
 .contact-inner {
