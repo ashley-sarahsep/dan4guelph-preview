@@ -765,29 +765,6 @@ html[data-contrast="high"] .myth-strip .lede { color: #FFFFFF; }
   padding: 28px; display: flex; flex-direction: column; gap: 14px;
   transition: border-color 150ms, box-shadow 150ms;
 }
-/* Full-width rows would otherwise set body copy at the wrap's whole 1120px,
-   which is roughly 160 characters a line and unreadable. Above 860px the
-   heading and lead take a third and the body takes the rest, which keeps the
-   measure near 70 characters. The rule between them is the stacked layout's
-   top border turned on its side. */
-@media (min-width: 860px) {
-  .pillar {
-    display: grid;
-    grid-template-columns: minmax(min(260px, 100%), 1fr) 2fr;
-    /* Three rows, the third empty. The body spans all of them, and without a
-       1fr row to absorb the slack its height is shared out across the rows the
-       heading and lead sit in, which floats the lead down the card. */
-    grid-template-rows: min-content min-content 1fr;
-    column-gap: 36px; row-gap: 12px;
-    align-items: start;
-  }
-  .pillar h3, .pillar-lead { grid-column: 1; }
-  .pillar-body {
-    grid-column: 2; grid-row: 1 / -1;
-    border-top: 0; padding-top: 0; margin-top: 0;
-    border-left: var(--bw) solid var(--hairline); padding-left: 36px;
-  }
-}
 /* Hover thickens the cyan with a ring drawn outside the border rather than a
    wider border, which would shift every card in the row by 2px. */
 .pillar:hover {
@@ -801,6 +778,31 @@ html[data-contrast="high"] .myth-strip .lede { color: #FFFFFF; }
 .pillar p { color: var(--muted); font-size: 1.125rem; }
 .pillar-lead { font-weight: 700; color: var(--ink); font-size: 1.0625rem; }
 .pillar-body { border-top: var(--bw) solid var(--hairline); padding-top: 16px; margin-top: 2px; }
+/* MUST stay after the .pillar-body rule above. A media query adds no
+   specificity, so with this block earlier in the file the base border-top won
+   and the body picked up a top rule as well as the left one - a bracket round
+   the text rather than a divider beside it.
+
+   Full-width rows would otherwise set body copy at the wrap's whole 1120px,
+   roughly 160 characters a line. Above 860px the heading and lead take a third
+   and the body the rest, which keeps the measure near 70. */
+@media (min-width: 860px) {
+  .pillar {
+    display: grid;
+    grid-template-columns: minmax(min(260px, 100%), 1fr) 2fr;
+    /* Three rows, the third empty. The body spans all of them, and without a
+       1fr row to absorb the slack its height is shared across the rows the
+       heading and lead sit in, which floats the lead down the card. */
+    grid-template-rows: min-content min-content 1fr;
+    column-gap: 40px; row-gap: 12px;
+    align-items: start;
+  }
+  .pillar h3, .pillar-lead { grid-column: 1; }
+  .pillar-body {
+    grid-column: 2; grid-row: 1 / -1;
+    border-top: 0; padding-top: 0; margin-top: 0;
+  }
+}
 
 /* --- Disclosures --------------------------------------------------------- */
 /* Used for the procedural half of the voting section. Native <details>, so it
