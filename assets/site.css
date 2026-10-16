@@ -1,0 +1,952 @@
+/* ============================================================================
+   Dan Atkinson — trustee campaign site
+   Steel & Cyan. Extracted from the inline styles in design-reference/index.html;
+   the rendered result is intended to be identical.
+
+   Font sizes are rem so the "Larger text" accessibility option can scale them
+   from the root. Spacing stays in px on purpose — larger text should grow the
+   text, not blow the whitespace apart.
+   ========================================================================= */
+
+/* --- Tokens -------------------------------------------------------------- */
+:root {
+  --ink:        #0C2E38;  /* body text, dark sections, outline buttons        */
+  --ink-deep:   #071F27;  /* footer, the drafting band                        */
+  --cyan:       #1499B8;  /* borders, accents, icon tiles, footer top rule    */
+  --teal:       #0B6C85;  /* links, headings on light grounds                 */
+  --pale:       #E7F3F7;  /* tinted panels, icon tile fills, hero gradient    */
+  --light-cyan: #8FD3E6;  /* footer column headings                           */
+  --soft-cyan:  #CFE3EA;  /* body copy on dark                                */
+  /* The campaign's red, rgb(212 35 81). Brighter than what it replaced, and
+     still 5.05:1 against white, so white button text clears AA. The two
+     darker shades are derived from it: -hi for hover states that must hold
+     4.5:1 on pale grounds, -sh for the button's hard shadow and error text. */
+  --crimson:    #D42351;  /* primary CTA, required markers, the About band     */
+  --crimson-hi: #B81C44;  /* CTA hover, link hover on light grounds           */
+  --crimson-sh: #8E1233;  /* 3px hard shadow under crimson buttons, error text */
+  --page:       #F7F8F7;  /* page + alternating section background           */
+  --white:      #FFFFFF;
+  --hairline:   #C9CFD2;
+  --muted:      #3D5560;  /* secondary copy                                   */
+  --muted-2:    #4A5A61;  /* captions, fine print                             */
+  --error-bg:   #FBEDEF;
+
+  --r-card: 8px;
+  /* Photo frames are rounded squares, not rectangles: the campaign's call.
+     The inner radius is the outer one minus the 10px mat, so the picture's
+     corners stay concentric with the frame's. */
+  --r-photo: 22px;          /* cards, panels, sections, primary CTAs            */
+  --r-ctl:  6px;          /* form controls, inline buttons, small tiles       */
+  --bw:     2px;
+
+  --shadow-card: 0 6px 22px rgba(12, 46, 56, 0.10);
+  --shadow-lift: 0 10px 28px rgba(12, 46, 56, 0.20);
+  /* Photographs get a real drop shadow: a tight contact shadow plus a wide
+     soft one, so they lift off the page instead of sitting flat on it. An
+     earlier version put a hard cyan bar under the frame; it read as a stray
+     rule, because the mat and the keyline separated it from the picture. */
+  --shadow-photo:
+    0 6px 12px rgba(7, 31, 39, 0.28),
+    0 22px 40px rgba(7, 31, 39, 0.38),
+    0 54px 90px rgba(7, 31, 39, 0.40);
+  --shadow-cta:  0 3px 0 var(--crimson-sh);
+
+  --wrap: 1120px;
+  --pad-y: clamp(64px, 9vw, 124px);
+  --pad-x: 20px;
+
+  /* The sticky header measures 286px below 480px, 187px to 860px, 136px
+     above. A single flat offset left headings hidden behind it on phones. */
+  --anchor-offset: 150px;
+
+  --r-panel: 28px;
+  /* One weight for the band's red edges and the keyline round every
+     photograph, so the two read as the same line. */
+  --edge: 4px;
+
+  --font-head: Archivo, "Helvetica Neue", Helvetica, sans-serif;
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+
+  --track: 0em;   /* letter-spacing added by the text-spacing option */
+  --word:  0em;
+  --leading: 1.6;
+}
+/* Two values, because the header is now two heights: 128px while the nav
+   has its own row, 73px once it shares one. Re-measure before changing. */
+@media (min-width: 860px) { :root { --anchor-offset: 95px; } }
+
+/* --- Accessibility options ----------------------------------------------- */
+/* Set as data-attributes on <html> by the panel, and re-applied from
+   localStorage by a small inline script in <head> before first paint. */
+
+html[data-text="large"]  { font-size: 118.75%; }  /* 17px body -> ~20px */
+html[data-text="xlarge"] { font-size: 137.5%;  }  /* 17px body -> ~23px */
+
+html[data-dyslexic="on"] {
+  --font-head: "OpenDyslexic", var(--font-body);
+  --font-body: "OpenDyslexic", "Comic Sans MS", "Source Sans 3", sans-serif;
+}
+
+html[data-spacing="on"] {
+  --track: 0.12em;
+  --word: 0.16em;
+  --leading: 1.9;
+}
+html[data-spacing="on"] p,
+html[data-spacing="on"] li,
+html[data-spacing="on"] label,
+html[data-spacing="on"] summary { margin-bottom: 0.35em; }
+
+/* High contrast: push every token to the strongest legible pairing.
+   Backgrounds flatten to pure white or pure black, hairlines go solid. */
+html[data-contrast="high"] {
+  --ink: #000000;
+  --ink-deep: #000000;
+  --muted: #000000;
+  --muted-2: #000000;
+  --teal: #00404F;
+  --cyan: #00404F;
+  --pale: #FFFFFF;
+  --page: #FFFFFF;
+  --hairline: #000000;
+  --crimson: #8A0016;
+  --crimson-hi: #5E000F;
+  --crimson-sh: #000000;
+  --soft-cyan: #FFFFFF;
+  --light-cyan: #FFFFFF;
+  --bw: 3px;
+}
+html[data-contrast="high"] .section--dark,
+html[data-contrast="high"] .site-footer { background: #000000 !important; }
+html[data-contrast="high"] a { text-decoration-thickness: 3px; }
+
+/* Enhanced focus: show the ring for mouse users too, and thicken it. */
+html[data-focus="enhanced"] :focus {
+  outline: 4px solid #FFFFFF !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 8px var(--ink), 0 0 0 11px #FFD400 !important;
+  border-radius: 4px;
+}
+
+html[data-motion="reduced"] * {
+  animation-duration: 0.001ms !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+html[data-motion="reduced"] { scroll-behavior: auto !important; }
+
+/* Self-hosted, not loaded from Google. Fetching them from fonts.gstatic.com
+   sent every visitor's IP address to Google on every page load, which is the
+   one thing left that contradicted "this page sends nothing anywhere". The
+   bytes are identical either way, so this costs the reader nothing and saves
+   two DNS lookups and two TLS handshakes to other origins.
+
+   THREE FILES, NOT SEVEN. Archivo and Source Sans 3 are variable fonts: one
+   file covers the whole weight axis, and each @font-face below pins it to the
+   weight it declares. They were checked in as one copy per weight, which meant
+   the browser downloaded the same bytes under four different names - 118 KB of
+   pure duplication on first load, on a page whose readers arrive on phones
+   from a lawn-sign QR code. Verified the weights still render distinctly after
+   the merge, by measuring the same string at 400/600/700/800.
+   If you add a weight, add a @font-face, NOT a file.
+
+   Only the latin subset. Checked rather than assumed: every character on the
+   page sits inside Google's latin range. The one symbol outside it, the
+   wheelchair mark, comes from a system font and always did.
+
+   Archivo and Source Sans 3 are both SIL Open Font License; the licence files
+   sit beside the woff2 files and must stay there. */
+@font-face {
+  font-family: "Archivo";
+  src: url("../fonts/archivo.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Archivo";
+  src: url("../fonts/archivo.woff2") format("woff2");
+  font-weight: 800;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("../fonts/source-sans-3.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("../fonts/source-sans-3-italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("../fonts/source-sans-3.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("../fonts/source-sans-3.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("../fonts/source-sans-3.woff2") format("woff2");
+  font-weight: 800;
+  font-display: swap;
+}
+@font-face {
+  font-family: "OpenDyslexic";
+  src: url("../fonts/OpenDyslexic-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "OpenDyslexic";
+  src: url("../fonts/OpenDyslexic-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
+/* Four headings carry the campaign's cyan, at their request on 21 Sep 2026:
+   his name in the hero, "Where Dan stands", "How and when to vote" and "Tell
+   Dan what matters to you!".
+   --cyan is 3.34:1 on white and 3.14:1 on --page, which clears AA's 3:1 for
+   large text and nothing else - the --page pairing has 0.14 to spare.
+   Measured: all four are 28px or more at weight 800 at every width in every
+   accessibility mode, so all four qualify. Every one of these is 28px or more at 800 weight at the
+   narrowest viewport, so all four qualify - but that is a constraint, not a
+   coincidence. **Do not shrink them, lighten them, or add this to a heading
+   that renders smaller**; on this palette --teal is 6.00:1 and carries any
+   size. They are named by id rather than by class because .h2 and .h2--sm are
+   also used by "Share Dan's platform", which sits on the cyan ground itself,
+   and by the land acknowledgement, neither of which takes this.
+   High contrast resolves --cyan to #00404F, which is 12.35:1 on white, so it
+   needs no override here. */
+#hero-name,
+#plat-h,
+#vote-h,
+#contact-h { color: var(--cyan); }
+
+/* --- Base ---------------------------------------------------------------- */
+* { box-sizing: border-box; }
+/* A display rule on a component would otherwise beat the hidden attribute. */
+[hidden] { display: none !important; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: var(--leading);
+  letter-spacing: var(--track);
+  word-spacing: var(--word);
+  text-wrap: pretty;
+}
+h1, h2, h3, h4 {
+  font-family: var(--font-head);
+  margin: 0;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+p { margin: 0; }
+ul, ol { margin: 0; }
+a {
+  color: var(--teal);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
+}
+a:hover { color: var(--crimson-hi); }
+/* Red on a dark ground fails at any shade, so links there brighten instead. */
+.section--dark a:hover,
+.site-footer a:hover { color: var(--white); }
+:focus-visible {
+  outline: 3px solid #FFFFFF;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px var(--ink);
+  border-radius: 4px;
+}
+summary::-webkit-details-marker { display: none; }
+summary { list-style: none; cursor: pointer; }
+input, textarea, button, select { font: inherit; color: inherit; }
+img { max-width: 100%; }
+main:focus { outline: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+/* --- Layout -------------------------------------------------------------- */
+.wrap { max-width: var(--wrap); margin: 0 auto; padding: var(--pad-y) var(--pad-x); }
+.section { scroll-margin-top: var(--anchor-offset); border-bottom: var(--bw) solid var(--hairline); }
+.section--white { background: var(--white); }
+.section--page  { background: var(--page); }
+.section--pale  { background: var(--pale); }
+/* The share block sits on the hero's cyan, at the campaign's request on
+   21 Sep 2026 - the same ground as the hero and the trustee explainer, but
+   without their cross-hatch, which is .section--band's and stays there.
+   It was --light-cyan, which carried --ink and --muted comfortably. --cyan is
+   much darker and neither survives it: --ink is 4.29:1 and --muted only
+   2.35:1. Both head and lede therefore go --ink-deep (5.09:1), the same
+   treatment and the same reason as the role section head. */
+.section--cyan  { background: var(--cyan); }
+.section--cyan .h2,
+.section--cyan .lede { color: var(--ink-deep); }
+/* High contrast turns --cyan into #00404F and --ink-deep into black, so that
+   5.09:1 becomes 1.85:1. Flip to white, exactly as the role head does. */
+html[data-contrast="high"] .section--cyan .h2,
+html[data-contrast="high"] .section--cyan .lede { color: #FFFFFF; }
+.section--dark  { background: var(--ink); color: var(--white); border-bottom-color: var(--ink); }
+.stack { display: flex; flex-direction: column; }
+.section-head { display: flex; flex-direction: column; gap: 14px; max-width: 44em; }
+h1, h2, h3, .h2, .h2--sm, .about-h, .hero-name {
+  overflow-wrap: break-word;
+  -webkit-hyphens: auto;
+  hyphens: auto;
+  /* Hyphenation exists for one word: "acknowledgement" in OpenDyslexic at 28px
+     needs 339px and had 298 on a 360px screen. Left to itself the browser also
+     breaks ordinary words like "actually", which looks like a mistake. This
+     limits it to words of 12+ characters, so the long one still breaks and
+     nothing shorter does. Unsupported engines fall back to plain auto. */
+  -webkit-hyphenate-limit-before: 5;
+  -webkit-hyphenate-limit-after: 4;
+  hyphenate-limit-chars: 12 5 4;
+}
+.h2       { font-size: clamp(1.75rem, 4.6vw, 2.75rem);  font-weight: 800; }
+.h2--sm   { font-size: clamp(1.75rem, 4.2vw, 2.625rem); font-weight: 800; }
+.lede     { font-size: 1.1875rem; color: var(--muted); }
+.lede--ink { color: var(--ink); }
+.fine     { font-size: 0.9375rem; color: var(--muted-2); }
+.grid     { display: grid; }
+
+/* --- Buttons ------------------------------------------------------------- */
+.btn {
+  display: inline-block;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  border: 0;
+  border-radius: var(--r-ctl);
+  padding: 13px 24px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.btn--primary { background: var(--crimson); color: var(--white); box-shadow: var(--shadow-cta); }
+.btn--primary:hover { background: var(--crimson-hi); color: var(--white); }
+.btn--outline { background: var(--white); color: var(--ink); border: var(--bw) solid var(--ink); }
+.btn--outline:hover { background: var(--ink); color: var(--white); }
+.btn--dark { background: var(--ink); color: var(--white); }
+.btn--dark:hover { background: var(--teal); color: var(--white); }
+.btn--block { display: block; width: 100%; }
+.btn--lg { font-size: 1.125rem; padding: 16px 30px; border-radius: var(--r-card); }
+.btn--push { margin-top: auto; }
+
+/* --- Header -------------------------------------------------------------- */
+.skip {
+  position: absolute;
+  left: 12px;
+  top: -100px;
+  z-index: 200;
+  background: var(--ink);
+  color: var(--white);
+  padding: 12px 18px;
+  border-radius: 0 0 var(--r-ctl) var(--r-ctl);
+  font-weight: 700;
+  text-decoration: none;
+}
+.skip:focus { top: 0; }
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  border-bottom: var(--bw) solid var(--hairline);
+}
+html[data-contrast="high"] .site-header { background: #FFFFFF; }
+.header-inner {
+  max-width: var(--wrap);
+  margin: 0 auto;
+  padding: 12px var(--pad-x);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+}
+.vote-pill {
+  display: flex; align-items: center; gap: 8px; order: 1; flex: none;
+  font-size: 0.8125rem; font-weight: 700; color: var(--ink);
+  background: var(--pale); border: var(--bw) solid var(--cyan);
+  border-radius: var(--r-ctl); padding: 6px 14px;
+}
+.vote-pill span { width: 9px; height: 9px; background: var(--crimson); border-radius: 2px; display: block; }
+.main-nav { order: 2; flex: 1 1 auto; min-width: 0; }
+.nav-list { list-style: none; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; }
+.nav-link { display: inline-block; padding: 8px 2px; font-weight: 600; text-decoration: none; border-bottom: 3px solid transparent; }
+.nav-link:hover { border-bottom-color: var(--cyan); }
+.nav-cta { margin-left: auto; }
+.nav-list .btn { padding: 10px 20px; }
+
+/* Below the desktop breakpoint the nav wrapped to three rows, making the sticky
+   header 336px tall — over a third of a 360px phone screen. Scrolling it
+   sideways in one row keeps every link reachable and gives the page back
+   ~180px. The "How to Vote" button stays pinned to the right edge so the
+   primary call to action never scrolls out of reach. Desktop is unchanged. */
+@media (max-width: 859px) {
+  .nav-list {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    padding-bottom: 6px;
+    scroll-padding-right: 16px;
+    scroll-padding-left: 16px;
+  }
+  .nav-list > li { flex: none; }
+  /* On a phone the pill keeps its own row and the nav scrolls under it. */
+  .main-nav { flex-basis: 100%; }
+  .main-nav, .nav-list { min-width: 0; max-width: 100%; }
+  /* The CTA scrolls with the row rather than pinning to the right edge.
+     Pinned, it covered 205px of a 360px row and sliced through the link
+     beside it. The hero's full-width "How to Vote" button sits immediately
+     below, and the "Vote Oct 26, 2026" pill stays visible in the header,
+     so nothing is lost by letting this one scroll. */
+  .nav-cta { margin-left: 12px; }
+}
+@media (max-width: 859px) and (prefers-reduced-motion: no-preference) {
+  .nav-list { scroll-behavior: smooth; }
+}
+
+/* --- Hero ---------------------------------------------------------------- */
+/* Cyan ground with a dark band running across it, edged in the campaign red:
+   their own drafting motif. The band is decorative and aria-hidden; the copy
+   sits on a white panel above it and the photograph's cyan mat reads against
+   it, so nothing here is set against the cyan or the band directly.
+   overflow:hidden keeps the rotation from widening the page. */
+.hero {
+  scroll-margin-top: var(--anchor-offset);
+}
+.section--band { position: relative; overflow: hidden; background: var(--cyan); }
+/* A white cross-hatch over the cyan, 2px rules on a 54px pitch at +/-48deg.
+   It hangs off .section--band rather than off .hero, because the hero and the
+   trustee explainer are meant to read as one ground and a hatch on only one of
+   them would break that. Write it once and both carry it.
+   It goes on a pseudo-element, not the section: opacity applies to an element
+   and all its descendants, so set on .hero it would fade the panel, the
+   photograph and the band with it. inset:0 fills the ground, the section's
+   overflow:hidden clips it, and z-index 0 keeps it under the band (a later
+   sibling at the same level) and under everything carrying content at
+   z-index 1 - .hero-panel, .role-inner and the myth strip.
+   Contrast: nothing in the hero is set against the cyan, and the one place
+   that is - the role head - only gains. A hatch line lightens the cyan to
+   rgb(57 169 195), which takes --ink-deep from 5.09:1 to 6.19:1 rather than
+   lowering it. */
+.section--band::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(48deg,  rgba(255,255,255,0.6) 0 2px, transparent 2px 54px),
+    repeating-linear-gradient(-48deg, rgba(255,255,255,0.6) 0 2px, transparent 2px 54px);
+  opacity: 0.26;
+  pointer-events: none;
+  z-index: 0;
+}
+/* High contrast flattens backgrounds to a flat pure tone; a lattice over
+   #00404F is exactly the texture that mode exists to remove. */
+html[data-contrast="high"] .section--band::before { display: none; }
+/* The band is positioned against the PHOTOGRAPH, not the section, so its height
+   and centre follow it at every width and no viewport breakpoints are needed.
+
+   Because the tilt lifts the right-hand end, the two corners that bind are the
+   TOP-RIGHT and the BOTTOM-LEFT: that is where each edge comes closest to the
+   photograph. Solving for both at once gives a band centred exactly on the
+   photograph (so no translate nudge) with
+
+       height = H x (1 - tan 3.5deg) - 2 x inset  =  93.9% - 24px
+
+   for a square photograph of height H. Change the angle and that 93.9% has to
+   change with it; it is 1 - tan(angle), not a number picked by eye. The hero's
+   overflow:hidden clips the long ends. */
+.photo-slot--hero { position: relative; }
+.photo-slot--hero .photo-frame { position: relative; z-index: 1; }
+.band {
+  position: absolute;
+  top: 50%; left: -120vw; right: -120vw;
+  height: calc(93.9% - 24px);
+  background: var(--ink-deep);
+  border-top: var(--edge) solid var(--crimson);
+  border-bottom: var(--edge) solid var(--crimson);
+  transform: translateY(-50%) rotate(-3.5deg);
+  pointer-events: none;
+  /* The band comes after the panel in the markup, so without this it paints
+     over the copy. Everything that carries content is z-index 1. */
+  z-index: 0;
+}
+/* Stacked, the photograph is nearly the full width and there is no room beside
+   it for the band to show, so it grows past the top and bottom edges instead.
+   The corner rule has nothing to bind against here. */
+@media (max-width: 767px) {
+  .band { height: calc(100% + 64px); }
+}
+/* Behind the explainer's card row there is no photograph to bind to, so the
+   band simply overshoots the row top and bottom and shows around the cards. */
+.band--cards { height: calc(100% + 150px); transform: translateY(-50%) rotate(-3.5deg); }
+.hero-panel {
+  position: relative; z-index: 1;
+  background: var(--white);
+  border-radius: var(--r-panel);
+  padding: clamp(24px, 3vw, 42px);
+  box-shadow: var(--shadow-photo);
+}
+.hero-inner {
+  position: relative;
+  max-width: var(--wrap); margin: 0 auto;
+  padding: clamp(32px, 5vw, 72px) var(--pad-x) clamp(40px, 5vw, 80px);
+  display: grid; gap: clamp(28px, 4vw, 56px);
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  align-items: center;
+}
+.hero-copy { display: flex; flex-direction: column; gap: 22px; align-items: flex-start; }
+/* Flat, and deliberately so. A light shadow and then a deeper two-layer one
+   were both tried on 21 Sep 2026 and both rejected: at this size the cyan
+   holds the panel on its own, and any shadow softened the letterforms. Do not
+   add one back. */
+.hero-name { font-size: clamp(2.5rem, 8vw, 4.5rem); font-weight: 800; letter-spacing: -0.03em; }
+.hero-role { font-size: clamp(1.1875rem, 2.4vw, 1.5rem); font-weight: 600; color: var(--ink); max-width: 22em; }
+.hero-tag  { font-size: clamp(1.0625rem, 2vw, 1.1875rem); color: var(--muted); max-width: 26em; }
+/* The tagline arrives as a short line and a sentence under it, so the first
+   one carries the weight and the second explains it. Cyan, the campaign's core
+   colour, at 3.34:1 on the white panel: that clears AA only as LARGE text, so
+   the 1.5rem floor and the 800 weight are load-bearing. Do not shrink it, do
+   not lighten it, and if it ever needs to be smaller use --teal instead, which
+   is 6.00:1. */
+.hero-tag--lead {
+  font-size: clamp(1.5rem, 3.4vw, 2.125rem);
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--cyan);
+  max-width: 14em;
+}
+.hero-tag--lead + .hero-tag { margin-top: -6px; }
+.hero-date { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px; font-family: var(--font-head); }
+.hero-date__label { font-size: 0.9375rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.hero-date__value { font-size: clamp(1.5rem, 3.4vw, 2rem); font-weight: 800; color: var(--ink); border-bottom: 5px solid var(--cyan); padding-bottom: 2px; }
+.hero-cta { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 4px; width: 100%; max-width: 520px; }
+.hero-cta .btn { flex: 1 1 220px; }
+
+/* --- Hero photograph ------------------------------------------------------ */
+/* The source is 3:2 and the slot is square, so cover trims the sides. The 52%
+   focal point keeps his face centred in what remains. Re-check that figure if
+   the hero photograph is ever replaced. */
+/* A cyan mat and a drop shadow. The mat is where his colour lands on the
+   photograph - a field of it rather than a line. The 4px --ink keyline that
+   used to sit outside it was removed on 21 Sep 2026; the mat was taken off in
+   the same pass and put straight back, so keyline gone, mat staying.
+   Concentric corners: the inner radius is the outer one minus the 10px mat. */
+.photo-frame {
+  background: var(--cyan);
+  padding: 10px;
+  border-radius: var(--r-photo);
+  box-shadow: var(--shadow-photo);
+}
+.photo-frame img {
+  display: block; width: 100%; height: auto;
+  border-radius: calc(var(--r-photo) - 10px);
+}
+/* The strip photographs open larger. The link is a real href to the bigger
+   file, so with scripting off a click still gets you the picture; the script
+   upgrades it to a dialog. */
+.photo-zoom { display: block; cursor: zoom-in; border-radius: calc(var(--r-photo) - var(--edge)); }
+.photo-zoom img { transition: filter 150ms; }
+.photo-zoom:hover img { filter: brightness(1.06); }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+
+.hero-photo {
+  display: block;
+  width: 100%;
+  /* height:auto is required — without it the width/height attributes on the
+     <img> win and aspect-ratio never applies, giving a tall cropped sliver.
+     The attributes stay because they reserve the right space before the image
+     loads, which stops the hero jumping about. */
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  object-position: 52% center;
+  /* A small radius inside the mat; the frame carries the outer corner. */
+  border-radius: 3px;
+  background: var(--white);
+}
+
+/* --- Photo slots -------------------------------------------------------- */
+.photo-slot { display: flex; flex-direction: column; gap: 10px; }
+
+/* --- About --------------------------------------------------------------- */
+
+/* One column of copy, then the photo strip full width beneath it. The strip
+   runs left to right in order — elementary, secondary, Tour de Guelph — so
+   it reads as his Guelph arc rather than a gallery. */
+.about-inner {
+  max-width: var(--wrap); margin: 0 auto; padding: var(--pad-y) var(--pad-x);
+  display: flex; flex-direction: column; gap: clamp(30px, 4vw, 48px);
+}
+.about-copy { display: flex; flex-direction: column; gap: 20px; max-width: 46em; }
+.about-strip { display: flex; flex-direction: column; gap: 16px; }
+.strip-h {
+  font-family: var(--font-head); font-size: 1.125rem; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--teal);
+}
+.about-h { font-size: clamp(1.875rem, 4.6vw, 2.875rem); font-weight: 800; }
+.about-para { color: var(--muted); font-size: 1.125rem; }
+/* Emphasis inside body copy steps up to --ink, so a bolded line reads as
+   emphasis rather than as grey gone heavy. Source Sans 3 700 is self-hosted,
+   so this is a real weight, not a synthesised one. */
+.about-para strong { color: var(--ink); font-weight: 700; }
+
+/* --- Photo strip --------------------------------------------------------- */
+.photo-strip {
+  list-style: none; padding: 0; margin: 0;
+  display: grid; gap: clamp(12px, 2vw, 20px);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+/* Three photographs since the Hillside one came out, so three columns: a
+   fourth track would leave a hole at the right-hand end of the row. */
+@media (min-width: 760px) {
+  .photo-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.photo-strip > li { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+/* The strip photographs take a plain cyan edge at --edge, the same weight as
+   the hero's keyline. No mat and no ink line: at thumbnail size the 10px mat
+   plus a 4px keyline read as a thick frame rather than an edge. */
+.photo-strip .photo-frame {
+  background: none;
+  padding: 0;
+  border: var(--edge) solid var(--cyan);
+}
+.photo-strip .photo-frame img { border-radius: calc(var(--r-photo) - var(--edge)); }
+/* No drop shadow here. The three pictures carry their own white mat now, and a
+   shadow under a matted picture reads as a second frame. Setting it to none
+   rather than deleting the rule, because .photo-frame's own shadow - sized for
+   the 600px hero - would otherwise come through. */
+.photo-strip .photo-frame { box-shadow: none; }
+.photo-cap { font-size: 0.9375rem; color: var(--muted); text-align: center; }
+
+/* --- The role ------------------------------------------------------------ */
+/* The explainer sits on the hero's ground now: cyan with the band across it.
+   Nothing here reads against the cyan except the section head, which is forced
+   to --ink-deep (5.09:1). --ink is 4.29:1 on cyan and --muted is worse, so the
+   inherited .lede and .eyebrow colours would both fail; that is what the
+   override below is for, not tidiness. */
+/* Deep bottom padding, not a gap: the myth strip is outside this wrapper now,
+   and the band overshoots the card row by 40px plus up to ~32px of drop at its
+   left end, so it needs real clearance before the dark starts. */
+.role-inner {
+  max-width: var(--wrap); margin: 0 auto;
+  padding: var(--pad-y) var(--pad-x) clamp(100px, 8vw, 120px);
+  /* The +56px is the clearance the band's tilt eats. The band overshoots the
+     card row by 75px, and because it rotates -3.5deg its top edge climbs as it
+     goes right - so the binding point is the right-hand end of the lede's last
+     line. On a narrow screen that line runs the full width and meets the band
+     at its highest. Measured before this: the text was under the band at every
+     width below 1280 and had 9px to spare at 1280. Keep the clamp for the
+     responsive shape and add the deficit on top, rather than flattening it. */
+  display: flex; flex-direction: column; gap: calc(clamp(60px, 6.5vw, 96px) + 56px);
+  position: relative; z-index: 1;
+}
+
+/* z-index 1 on everything that holds text: the band is a positioned sibling
+   and would otherwise paint over the head and the myth panel. */
+.role-head { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 16px; max-width: 44em; color: var(--ink-deep); }
+.role-head .lede { color: var(--ink-deep); }
+/* High contrast turns --cyan into #00404F, so the dark head text that reads at
+   5.09:1 on the normal cyan becomes black on near-black. It flips to white
+   there. This is the only text on the site set directly against the cyan
+   ground; everything else in the hero and here sits on a panel or a card. */
+html[data-contrast="high"] .role-head,
+html[data-contrast="high"] .role-head .lede,
+html[data-contrast="high"] #role-h { color: #FFFFFF; }
+
+/* Four columns across, so each card is narrow and tall: the tile stacks above
+   the heading instead of sitting beside it. */
+.role-band { position: relative; }
+.role-grid {
+  position: relative; z-index: 1;
+  display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
+}
+.role-card {
+  background: var(--white); color: var(--ink);
+  border: var(--edge) solid var(--ink);
+  border-radius: var(--r-photo);
+  padding: 22px; display: flex; flex-direction: column; gap: 12px;
+}
+.role-card h3 { font-size: 1.1875rem; font-weight: 700; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.role-card p { color: var(--muted); font-size: 0.9375rem; }
+/* The closing strip runs edge to edge and closes the section, so its ground
+   covers the cyan rather than floating on it. The strip carries the colour;
+   the panel inside it just re-imposes the page's column. It held the myth
+   cards until 21 Sep 2026 and now carries the job-shape panel and the closing
+   line; the class names are unchanged so the markup and the rules still match.
+   It was --ink-deep, matching the band above it, and the campaign found the
+   second dark shape too heavy under the first. --pale is the same cyan family
+   two steps lighter, so the section still closes on a colour change without a
+   second slab of near-black. */
+.myth-strip { position: relative; z-index: 1; }
+/* The closing lede now sits directly on the cyan, so it takes the same
+   treatment as the section head above it: --ink-deep at 5.09:1, flipped to
+   white under high contrast where --cyan resolves to #00404F and --ink-deep
+   to black. --muted, which it inherited on the old --pale ground, is 2.35:1
+   here and fails outright. */
+.myth-strip .lede { color: var(--ink-deep); }
+html[data-contrast="high"] .myth-strip .lede { color: #FFFFFF; }
+.myth-panel {
+  max-width: var(--wrap); margin: 0 auto;
+  padding: clamp(34px, 4.5vw, 62px) var(--pad-x);
+  display: flex; flex-direction: column; gap: 20px;
+}
+/* --- Steps and notes (used inside the voting disclosures) ---------------- */
+.step-list { padding-left: 1.3em; display: flex; flex-direction: column; gap: 12px; color: var(--muted); }
+.vote-dates { padding-left: 1.2em; display: flex; flex-direction: column; gap: 8px; color: var(--muted); }
+.note { font-size: 0.875rem; color: var(--muted-2); }
+
+/* --- Platform ------------------------------------------------------------ */
+.platform-inner { max-width: var(--wrap); margin: 0 auto; padding: var(--pad-y) var(--pad-x); display: flex; flex-direction: column; gap: 32px; }
+.pillar-grid { list-style: none; padding: 0; display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); }
+/* The cards were --page on a --page section, so only the hairline separated
+   them from the ground. White plus a resting shadow is what makes them cards. */
+.pillar {
+  background: var(--white); border: var(--bw) solid var(--hairline);
+  border-radius: var(--r-photo);
+  box-shadow: var(--shadow-card);
+  padding: 28px; display: flex; flex-direction: column; gap: 14px;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+/* Hover thickens the cyan with a ring drawn outside the border rather than a
+   wider border, which would shift every card in the row by 2px. */
+.pillar:hover {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 4px var(--cyan), var(--shadow-lift);
+}
+/* --cyan is 3.34:1 on white, which clears AA only as large text; at 1.4375rem
+   and weight 800 these headings qualify. Do not shrink them or lighten the
+   weight. --teal is 6.00:1 if either ever has to change. */
+.pillar h3 { font-size: 1.4375rem; font-weight: 800; color: var(--cyan); }
+.pillar p { color: var(--muted); font-size: 1.125rem; }
+.pillar-lead { font-weight: 700; color: var(--ink); font-size: 1.0625rem; }
+.pillar-body { border-top: var(--bw) solid var(--hairline); padding-top: 16px; margin-top: 2px; }
+
+/* --- Disclosures --------------------------------------------------------- */
+/* Used for the procedural half of the voting section. Native <details>, so it
+   works with JavaScript off; the summary is a 44px target and keeps the focus
+   ring the rest of the page uses. */
+.disclosure {
+  background: var(--white); border: var(--bw) solid var(--hairline);
+  border-radius: var(--r-card);
+}
+.disclosure + .disclosure { margin-top: 12px; }
+.disclosure > summary {
+  display: flex; gap: 12px; align-items: center; justify-content: space-between;
+  padding: 14px 20px; min-height: 44px; cursor: pointer;
+  font-family: var(--font-head); font-weight: 700; font-size: 1.125rem; color: var(--ink);
+}
+.disclosure > summary::-webkit-details-marker { display: none; }
+.disclosure[open] > summary { border-bottom: var(--bw) solid var(--hairline); }
+.disclosure__body { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 12px; }
+.disclosure__body .btn { align-self: flex-start; }
+.disclosure__body p { color: var(--muted); }
+.chev {
+  width: 9px; height: 9px; display: block; flex: none; color: var(--teal);
+  border-right: 3px solid currentColor; border-bottom: 3px solid currentColor;
+  transform: rotate(45deg); transition: transform 150ms;
+}
+.disclosure[open] > summary .chev { transform: rotate(-135deg); }
+html[data-motion="reduced"] .chev { transition: none; }
+
+/* --- Voter info ---------------------------------------------------------- */
+.voter-inner { max-width: var(--wrap); margin: 0 auto; padding: var(--pad-y) var(--pad-x); display: flex; flex-direction: column; gap: 28px; }
+.info-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); }
+.info-card { background: var(--white); border: var(--bw) solid var(--hairline); border-radius: var(--r-card); padding: 24px; display: flex; flex-direction: column; gap: 12px; }
+.info-card h3 { font-size: 1.25rem; font-weight: 700; }
+.info-card p { color: var(--muted); }
+.info-date { font-family: var(--font-head); font-size: 1.5rem; font-weight: 800; color: var(--ink); }
+.contact-lines { display: flex; flex-direction: column; gap: 6px; }
+
+/* --- The address card ---------------------------------------------------- */
+/* One pattern, two uses: the share block's web address and the contact
+   block's email address. Both are a value people need to read accurately and
+   copy, so both get the monospace box with user-select:all and a copy button
+   behind .js-only. Named .addr-* rather than .share-* because the contact
+   block is not sharing anything. */
+/* Copy and native share are JavaScript; the address itself and the mail link
+   are not, so the section still does its job with scripting off. */
+.share-inner { max-width: var(--wrap); margin: 0 auto; padding: var(--pad-y) var(--pad-x); display: flex; flex-direction: column; gap: 28px; }
+.addr-card {
+  background: var(--white); color: var(--ink);
+  border: var(--bw) solid var(--hairline); border-radius: var(--r-card);
+  padding: clamp(22px, 3vw, 32px); display: flex; flex-direction: column; gap: 14px;
+  max-width: 44em;
+}
+.addr-label { font-size: 0.9375rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--teal); }
+.addr-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: clamp(1rem, 2.4vw, 1.25rem); color: var(--ink);
+  background: var(--pale); border: var(--bw) solid var(--cyan); border-radius: var(--r-ctl);
+  padding: 14px 16px; overflow-wrap: anywhere; user-select: all;
+}
+.addr-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.addr-status { font-weight: 700; color: var(--teal); min-height: 1.5em; }
+.js-only { display: none; }
+html.js .js-only { display: inline-block; }
+
+/* --- Contact ------------------------------------------------------------- */
+.contact-inner {
+  max-width: var(--wrap); margin: 0 auto; padding: var(--pad-y) var(--pad-x);
+  display: grid; gap: clamp(28px, 4vw, 52px);
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+.contact-copy { display: flex; flex-direction: column; gap: 16px; }
+/* --- Land acknowledgement ------------------------------------------------ */
+/* Narrower measure and a quiet cyan rule. It closes the page, so it is not
+   competing with anything; the point is that it is read, not noticed. */
+.land-inner { max-width: var(--wrap); margin: 0 auto; padding: var(--pad-y) var(--pad-x); }
+.land-body {
+  max-width: 54em;
+  display: flex; flex-direction: column; gap: 16px;
+  border-left: 4px solid var(--cyan);
+  padding-left: clamp(18px, 2.5vw, 32px);
+}
+.land-para { color: var(--muted); font-size: 1.0625rem; }
+
+/* --- Lightbox ------------------------------------------------------------ */
+/* A native <dialog>: showModal() brings the focus trap, Escape and the top
+   layer with it, so none of that is hand-rolled. Hidden by default without
+   scripting, which is why the link points at the image file. */
+.lightbox {
+  border: 0; padding: 0; background: transparent;
+  max-width: min(94vw, 900px); max-height: 94vh;
+  overflow: visible;
+}
+.lightbox::backdrop { background: rgba(7, 31, 39, 0.82); }
+.lightbox__inner {
+  background: var(--cyan);
+  border: var(--bw) solid var(--ink);
+  border-radius: var(--r-photo);
+  padding: 10px;
+  display: flex; flex-direction: column; gap: 12px;
+  box-shadow: var(--shadow-photo);
+}
+.lightbox__img {
+  display: block; width: 100%; height: auto;
+  max-height: 72vh; object-fit: contain;
+  border-radius: calc(var(--r-photo) - 10px);
+  background: var(--white);
+}
+/* The caption sits on its own white strip rather than on the mat. White on
+   --cyan is 3.34:1, and ink on it is 5.09:1 in the normal palette but black on
+   #00404F under high contrast, which fails. On white both modes are safe. */
+.lightbox__cap {
+  color: var(--ink); font-weight: 600; font-size: 0.9375rem;
+  background: var(--white); border-radius: calc(var(--r-photo) - 14px);
+  padding: 10px 14px; margin: 0;
+}
+.lightbox__close { align-self: flex-start; margin: 0 6px 6px; }
+html[data-motion="reduced"] .photo-zoom img { transition: none; }
+
+/* --- Footer -------------------------------------------------------------- */
+.site-footer { background: var(--ink-deep); color: var(--soft-cyan); border-top: 6px solid var(--cyan); }
+.footer-inner { max-width: var(--wrap); margin: 0 auto; padding: clamp(36px, 5vw, 64px) var(--pad-x); display: flex; flex-direction: column; gap: 26px; }
+.footer-headline { font-family: var(--font-head); font-size: clamp(1.375rem, 3.4vw, 1.875rem); font-weight: 800; color: var(--white); }
+.footer-cols { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.footer-col { display: flex; flex-direction: column; gap: 8px; }
+.footer-h { font-size: 0.9375rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--light-cyan); }
+.footer-col a { color: var(--soft-cyan); }
+.footer-legal { border-top: 1px solid #24505E; padding-top: 20px; font-size: 0.9375rem; }
+
+/* --- Decorative glyphs --------------------------------------------------- */
+
+/* --- Accessibility panel -------------------------------------------------- */
+/* Hidden entirely without JS — the controls would do nothing. */
+.a11y { display: none; }
+html.js .a11y { display: block; }
+
+.a11y__fab {
+  position: fixed; right: 16px; bottom: 16px; z-index: 150;
+  display: flex; align-items: center; gap: 10px;
+  background: var(--ink); color: var(--white);
+  border: var(--bw) solid var(--white);
+  border-radius: 999px; padding: 12px 20px;
+  font-weight: 700; font-size: 1rem; min-height: 52px;
+  box-shadow: 0 4px 16px rgba(7, 31, 39, 0.35);
+  cursor: pointer;
+}
+.a11y__fab:hover { background: var(--teal); }
+.a11y__fab-icon { font-size: 1.375rem; line-height: 1; }
+@media (max-width: 420px) { .a11y__fab-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } .a11y__fab { padding: 12px; } }
+
+.a11y__backdrop { position: fixed; inset: 0; background: rgba(7, 31, 39, 0.55); z-index: 160; }
+.a11y__panel {
+  position: fixed; z-index: 170;
+  right: 16px; bottom: 16px; left: 16px;
+  max-width: 420px; margin-left: auto;
+  max-height: calc(100vh - 32px); overflow-y: auto;
+  background: var(--white); color: var(--ink);
+  border: var(--bw) solid var(--ink); border-radius: var(--r-card);
+  box-shadow: 0 12px 40px rgba(7, 31, 39, 0.4);
+  display: flex; flex-direction: column;
+}
+.a11y__head { position: sticky; top: 0; z-index: 1; background: var(--white);
+  padding: 22px 56px 16px 22px; border-bottom: var(--bw) solid var(--hairline); }
+.a11y__head h2 { font-size: 1.375rem; font-weight: 800; }
+.a11y__head p { color: var(--muted); font-size: 0.9375rem; margin-top: 4px; }
+.a11y__close {
+  position: absolute; top: 14px; right: 14px;
+  width: 44px; height: 44px; display: grid; place-items: center;
+  background: var(--white); color: var(--ink);
+  border: var(--bw) solid var(--ink); border-radius: var(--r-ctl);
+  font-size: 1.25rem; line-height: 1; cursor: pointer;
+}
+.a11y__close:hover { background: var(--ink); color: var(--white); }
+.a11y__body { padding: 6px 22px 12px; }
+.a11y__group { border: 0; margin: 0; padding: 16px 0 4px; }
+.a11y__group + .a11y__group { border-top: 1px solid var(--hairline); }
+.a11y__group legend {
+  font-family: var(--font-head); font-size: 0.8125rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--teal); padding: 0;
+}
+.a11y__opt { display: flex; align-items: flex-start; gap: 14px; padding: 12px 0; }
+.a11y__opt label { flex: 1; cursor: pointer; }
+.a11y__opt-name { display: block; font-weight: 700; }
+.a11y__opt-desc { display: block; font-size: 0.9375rem; color: var(--muted); }
+
+/* Real checkbox, styled as a switch — keeps native semantics and keyboard use. */
+.a11y__cb {
+  appearance: none; -webkit-appearance: none;
+  flex: none; position: relative; margin: 2px 0 0;
+  width: 56px; height: 32px; border-radius: 999px;
+  background: var(--white); border: var(--bw) solid var(--ink);
+  cursor: pointer; transition: background 150ms;
+}
+.a11y__cb::after {
+  content: ""; position: absolute; top: 3px; left: 3px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--ink); transition: transform 150ms;
+}
+.a11y__cb:checked { background: var(--teal); border-color: var(--teal); }
+.a11y__cb:checked::after { background: var(--white); transform: translateX(24px); }
+.a11y__cb:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.a11y__foot { display: flex; flex-wrap: wrap; gap: 12px; padding: 8px 22px 4px; border-top: var(--bw) solid var(--hairline); padding-top: 16px; }
+.a11y__foot .btn { flex: 1 1 140px; }
+.a11y__note { padding: 12px 22px 20px; font-size: 0.875rem; color: var(--muted-2); }
