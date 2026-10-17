@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>James's Quest</title>
+<style>
+  :root { --bezel: #d9cfb8; --bezel-dark: #b8ad94; }
+  html, body { margin:0; padding:0; background:#1a1a1a; height:100%; overflow:hidden; font-family: ui-monospace, Menlo, Consolas, monospace; }
+  #stage { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
+  #monitor { position:relative; }
+  #monitor.crt { padding: 3.2% 3.2% 5% 3.2%; background: linear-gradient(160deg, var(--bezel), var(--bezel-dark)); border-radius: 18px; box-shadow: 0 20px 60px rgba(0,0,0,.6), inset 0 0 0 2px rgba(255,255,255,.25); }
+  #screenwrap { position:relative; background:#000; overflow:hidden; }
+  #monitor.crt #screenwrap { border-radius: 10px / 14px; box-shadow: inset 0 0 40px rgba(0,0,0,.9); }
+  canvas { display:block; }
+  #crtfx { position:absolute; inset:0; pointer-events:none; display:none; }
+  #monitor.crt #crtfx { display:block; }
+  #crtfx::before { content:""; position:absolute; inset:0; background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(0,0,0,.28) 3px); mix-blend-mode: multiply; }
+  #crtfx::after { content:""; position:absolute; inset:0; background: radial-gradient(ellipse at center, rgba(255,255,255,.06) 0%, rgba(0,0,0,0) 55%, rgba(0,0,0,.45) 100%); }
+  #powerlight { position:absolute; right:4%; bottom:1.6%; width:9px; height:9px; border-radius:50%; background:#49d16b; box-shadow:0 0 6px #49d16b; display:none; }
+  #monitor.crt #powerlight { display:block; }
+  #cmdrow { position:absolute; left:0; right:0; bottom:0; display:flex; gap:6px; padding:6px; background:#000; box-sizing:border-box; }
+  #cmd { flex:1; background:#000; color:#fff; border:1px solid #555; padding:6px 8px; font: inherit; font-size:14px; outline:none; }
+  #cmd::placeholder { color:#777; }
+  .btn { background:#2a2a2a; color:#eee; border:1px solid #666; padding:6px 10px; font:inherit; font-size:13px; cursor:pointer; white-space:nowrap; }
+  .btn:active { background:#444; }
+  #toggles { position:fixed; top:8px; right:10px; display:flex; gap:6px; z-index:5; }
+  #touchpad { position:fixed; left:10px; bottom:10px; display:none; grid-template-columns: repeat(3, 44px); gap:4px; z-index:5; opacity:.85; }
+  #touchpad button { width:44px; height:44px; font-size:18px; }
+  body.touch #touchpad { display:grid; }
+</style>
+</head>
+<body>
+<div id="toggles">
+  <button class="btn" id="crtbtn">CRT: on</button>
+</div>
+<div id="stage">
+  <div id="monitor" class="crt">
+    <div id="screenwrap">
+      <canvas id="game" width="960" height="600"></canvas>
+      <div id="crtfx"></div>
+      <div id="cmdrow">
+        <input id="cmd" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="type something, or tap things in the picture">
+        <button class="btn" id="askdad">Ask Dad</button>
+        <button class="btn" id="bucketbtn">Bucket</button>
+      </div>
+    </div>
+    <div id="powerlight"></div>
+  </div>
+</div>
+<div id="touchpad">
+  <span></span><button class="btn" data-k="ArrowUp">▲</button><span></span>
+  <button class="btn" data-k="ArrowLeft">◀</button><button class="btn" data-k="ArrowDown">▼</button><button class="btn" data-k="ArrowRight">▶</button>
+</div>
+
+<script>
+// ============================================================================
+// JAMES'S QUEST: The Perils of the Royal City  (small edition)
+// One file. 320x200. Sixteen colours. No em dashes. Nothing scary.
+// Backgrounds: assets/bg/street.png, bean.png, school.png. Painted renders at
+// 960x600, not EGA - see scenes/backgrounds.py.
+// If a background is missing, a plain placeholder is drawn so the game runs.
+// Press H to see hotspot boxes. Click with H on to log coordinates.
+// ============================================================================
+
+const EGA = ['#000000','#0000AA','#00AA00','#00AAAA','#AA0000','#AA00AA','#AA5500','#AAAAAA',
+             '#555555','#5555FF','#55FF55','#55FFFF','#FF5555','#FF55FF','#FFFF55','#FFFFFF'];
+const PAL = { '.':null,'k':0,'b':1,'g':2,'c':3,'r':4,'m':5,'o':6,'l':7,'d':8,'B':9,'G':10,'C':11,'O':12,'p':13,'y':14,'w':15 };
+
+// ---------------------------------------------------------------- SPRITES
+// Small, hand-pixeled. Facing right. Left is flipped. 'O' is skin.
+const SPR = {};
+SPR.james = { w:12, h:28, frames: [
+[ // stand
+"....oooo....",
+"...oooooo...",
+"...oOOOOo...",
+"...OOkOkO...",
+"...OOOOOO...",
+"....OOOO....",
+"..rrccccrr..",
+".rrccccccrr.",
+".rrccccccr..",
+".rrccccccr..",
+".rrcccccc...",
+"..rccccc.oo.",
+"..OcccccOok.",
+"...cccc.ook.",
+"...bbbb..k..",
+"...bbbb.....",
+"...bbbb.....",
+"...bbbb.....",
+"...bb.bb....",
+"...bb.bb....",
+"...bb.bb....",
+"...bb.bb....",
+"...bb.bb....",
+"...bb.bb....",
+"...bb.bb....",
+"...kk.kk....",
+"..kkk.kkk...",
+"............"],
+[ // walk a
+"....oooo....",
+"...oooooo...",
+"...oOOOOo...",
+"...OOkOkO...",
+"...OOOOOO...",
+"....OOOO....",
+"..rrccccrr..",
+".rrccccccrr.",
+".rrccccccr..",
+".rrccccccr..",
+".rrcccccc...",
+"..rccccc.oo.",
+"..OcccccOok.",
+"...cccc.ook.",
+"...bbbb..k..",
+"...bbbb.....",
+"...bbbb.....",
+"..bbbbbb....",
+"..bb..bb....",
+".bb....bb...",
+".bb....bb...",
+"bb......bb..",
+"bb......bb..",
+"kk......kk..",
+"kkk.....kkk.",
+"............",
+"............",
+"............"],
+[ // walk b
+"....oooo....",
+"...oooooo...",
+"...oOOOOo...",
+"...OOkOkO...",
+"...OOOOOO...",
+"....OOOO....",
+"..rrccccrr..",
+".rrccccccrr.",
+".rrccccccr..",
+".rrccccccr..",
+".rrcccccc...",
+"..rccccc.oo.",
+"..OcccccOok.",
+"...cccc.ook.",
+"...bbbb..k..",
+"...bbbb.....",
+"...bbbb.....",
+"...bbbb.....",
+"...bbbb.....",
+"...bbbb.....",
+"...bbbb.....",
+"...bbbb.....",
+"...bbbb.....",
+"...bbbb.....",
+"...kkkk.....",
+"..kkkkkk....",
+"............",
+"............"],
+]};
+
+SPR.dad = { w:14, h:40, frames: [
+[ // stand
+".....kkkk.....",
+"....kkkkkk....",
+"....kOOOOk....",
+"....OkOkOO....",
+"...kkk.kkk....",
+"....OOOOOO....",
+".....OOOO.....",
+"....ccccccc...",
+"...ccccccccc..",
+"..cccCccccccc.",
+"..cccCcccccccc",
+"..cccCccccccOO",
+"..cccCccccccOO",
+"..cccCcccccc..",
+"..cccCccccc...",
+"..cccCccccc...",
+"..OcccCcccc...",
+"..OcccCcccc...",
+"...cccccccc...",
+"...cccccccc...",
+"...bbbbbbbb...",
+"...bbbbbbbb...",
+"...bbbbbbbb...",
+"...bbbbbbbb...",
+"...bbb..bbb...",
+"...bbb..bbb...",
+"...bbb..bbb...",
+"...bbb..bbb...",
+"...bbb..bbb...",
+"...bbb..bbb...",
+"...bbb..bbb...",
+"...bbb..bbb...",
+"...bbb..bbb...",
+"...bbb..bbb...",
+"...bbb..bbb...",
+"...bbb..bbb...",
+"...bbb..bbb...",
+"...kkk..kkk...",
+"..kkkk..kkkk..",
+".............."],
+[ // walk a
+".....kkkk.....",
+"....kkkkkk....",
+"....kOOOOk....",
+"....OkOkOO....",
+"...kkk.kkk....",
+"....OOOOOO....",
+".....OOOO.....",
+"....ccccccc...",
+"...ccccccccc..",
+"..cccCccccccc.",
+"..cccCcccccccc",
+"..cccCccccccOO",
+"..cccCccccccOO",
+"..cccCcccccc..",
+"..cccCccccc...",
+"..cccCccccc...",
+"..OcccCcccc...",
+"..OcccCcccc...",
+"...cccccccc...",
+"...cccccccc...",
+"...bbbbbbbb...",
+"...bbbbbbbb...",
+"...bbbbbbbb...",
+"..bbbbbbbbbb..",
+"..bbb....bbb..",
+".bbb......bbb.",
+".bbb......bbb.",
+"bbb........bbb",
+"bbb........bbb",
+"bbb........bbb",
+"kkk........kkk",
+"kkkk......kkkk",
+"..............",
+"..............",
+"..............",
+"..............",
+"..............",
+"..............",
+"..............",
+".............."],
+[ // walk b
+".....kkkk.....",
+"....kkkkkk....",
+"....kOOOOk....",
+"....OkOkOO....",
+"...kkk.kkk....",
+"....OOOOOO....",
+".....OOOO.....",
+"....ccccccc...",
+"...ccccccccc..",
+"..cccCccccccc.",
+"..cccCcccccccc",
+"..cccCccccccOO",
+"..cccCccccccOO",
+"..cccCcccccc..",
+"..cccCccccc...",
+"..cccCccccc...",
+"..OcccCcccc...",
+"..OcccCcccc...",
+"...cccccccc...",
+"...cccccccc...",
+"...bbbbbbbb...",
+"...bbbbbbbb...",
+"...bbbbbbbb...",
+"...bbbbbbbb...",
+"...bbbbbbbb...",
+"...bbbbbbbb...",
+"...bbbbbbbb...",
+"...bbbbbbbb...",
+"...bbbbbbbb...",
+"...bbbbbbbb...",
+"...bbbbbbbb...",
+"...bbbbbbbb...",
+"....kkkkkk....",
+"...kkkkkkkk...",
+"..............",
+"..............",
+"..............",
+"..............",
+"..............",
+".............."],
+]};
+
+SPR.gus = { w:14, h:34, frames: [[
+".....wwww.....",
+"....wwwwww....",
+"...wwwwwwww...",
+"...wwkkwkkw...",
+"...wwkkwkkw...",
+"...wwwwwwww...",
+"..wwwwwwwwww..",
+"..wwwwwwwwww..",
+".wwwwwwwwwwww.",
+".wwwooooooww..",
+".wwwoooooow...",
+".wwwooooooww..",
+".wwwoooooowwww",
+".wwwooooooww.w",
+".wwwoooooowwww",
+".wwwooooooww..",
+".wwwooooooww..",
+".wwwooooooww..",
+".wwwwwwwwwww..",
+".wwwwwwwwwww..",
+".wwwwwwwwwww..",
+".wwwwwwwwwww..",
+".wwwwwwwwwww..",
+".wwwwwwwwwww..",
+".wwwwwwwwwww..",
+".wwwwwwwwwww..",
+".wwwwwwwwwww..",
+".wwwwwwwwwww..",
+".wwwwwwwwwww..",
+".wwwwwwwwwww..",
+".wwwwwwwwwww..",
+".wwwwwwwwwww..",
+"..kkk....kkk..",
+".............."]]};
+
+SPR.cat = { w:14, h:10, frames: [[
+".l..........l.",
+".ll........ll.",
+".llllllllllll.",
+".lkl.llll.lkl.",
+".llllllllllll.",
+"..llllllllll..",
+"..llllllllll..",
+"..llllllllll..",
+"..ll.ll.ll.l..",
+".............."]]};
+
+SPR.spider = { w:7, h:7, frames: [[
+"...k...",
+"k.kkk.k",
+".kkwkk.",
+"k.kkk.k",
+".k...k.",
+"k.....k",
+"......."]]};
+
+SPR.sign = { w:12, h:14, frames: [[
+"cccccccccccc",
+"cwwwwwwwwwwc",
+"cwcwcwcwcwwc",
+"cwwwwwwwwwwc",
+"cwwcwcwcwcwc",
+"cwwwwwwwwwwc",
+"OOOOOOOOOOOO",
+"cccccccccccc",
+".d........d.",
+".d........d.",
+".d........d.",
+".d........d.",
+".d........d.",
+".d........d."]]};
+
+SPR.pumpkin_dark = { w:10, h:9, frames: [[
+"....gg....",
+"..oooooo..",
+".oooooooo.",
+"oooooooooo",
+"oookoookoo",
+"oooooooooo",
+"ookoooooko",
+".ookkkkoo.",
+"..oooooo.."]]};
+
+SPR.pumpkin_lit = { w:10, h:9, frames: [[
+"....gg....",
+"..OOOOOO..",
+".OOOOOOOO.",
+"OOOOOOOOOO",
+"OOOyOOOyOO",
+"OOOOOOOOOO",
+"OOyOOOOOyO",
+".OOyyyyOO.",
+"..OOOOOO.."]]};
+
+SPR.candle = { w:6, h:10, frames: [[
+"..y...",
+".yyy..",
+"..y...",
+"..w...",
+"..w...",
+"..w...",
+"..w...",
+".lll..",
+"llllll",
+"......"]]};
+
+SPR.jar = { w:8, h:10, frames: [[
+".llllll.",
+".dddddd.",
+"CyCCCCyC",
+"CCCyCCCC",
+"CyCCCCCy",
+"CCCCyCCC",
+"CCyCCCyC",
+"CCCCCCCC",
+".CCCCCC.",
+"........"]]};
+
+SPR.glasses = { w:9, h:4, frames: [[
+"kkk.k.kkk",
+"k.kkkkk.k",
+"kkk...kkk",
+"........."]]};
+
+SPR.candy = { w:8, h:5, frames: [[
+"p.pppp.p",
+"ppppppp.",
+".ppOOppp",
+"ppppppp.",
+"p.pppp.p"]]};
+
+SPR.bucket = { w:9, h:8, frames: [[
+"..ooooo..",
+".o.....o.",
+"OOOOOOOOO",
+"OOkOOOkOO",
+"OOOOOOOOO",
+".OOkkkOO.",
+".OOOOOOO.",
+"..OOOOO.."]]};
+
+SPR.dadicon = { w:8, h:8, frames: [[
+"..kkkk..",
+".kOOOOk.",
+".OkOkOO.",
+"..OOOO..",
+".cccccc.",
+"cccccccc",
+".bbbbbb.",
+".bb..bb."]]};
+
+// ---------------------------------------------------------------- SCREENS
+// Hotspot x,y,w,h are in 320x200 game pixels. Adjust to your backgrounds.
+// 'spot' hotspots are where sprites get drawn too (sx, sy = sprite bottom-centre).
+const SCREENS = {
+  street: {
+    bg: 'assets/bg/street.png', placeholder: [1, 2, 8],
+    walk: { y0: 166, y1: 192 },
+    start: { x: 70, y: 180 },
+    exits: { right: 'bean' },
+    hotspots: {
+      house:     { x: 0,   y: 28,  w: 58,  h: 120, name: 'our house', syn: ['home','dads house','dad house','our porch light','windows'] },
+      porch:     { x: 12,  y: 118, w: 44,  h: 30,  name: 'porch', syn: ['step','steps','our step'] },
+      candle:    { x: 19,  y: 127, w: 11,  h: 13,  name: 'candle', syn: ['light'], item: true, sx: 25, sy: 140 },
+      lawn:      { x: 0,   y: 148, w: 46,  h: 26,  name: "our lawn", syn: ['lawn','grass','yard','our yard','front lawn'] },
+      neighbour: { x: 208, y: 56,  w: 90,  h: 96,  name: "the neighbours' house", syn: ['neighbour','neighbor','neighbours','neighbors','neighbour house','door','their door','knock','mrs patel','patel'] },
+      pumpkin:   { x: 246, y: 136, w: 18,  h: 18,  name: 'pumpkin', syn: ['jack o lantern','jackolantern','lantern','pumpkins','their pumpkin'], sx: 255, sy: 152 },
+      nlawn:     { x: 186, y: 150, w: 134, h: 18,  name: "the neighbours' lawn", syn: ['their lawn','neighbour lawn','neighbor lawn','their grass','their yard'] },
+      pole:      { x: 230, y: 0,   w: 90,  h: 82,  name: 'big tree', syn: ['tree','maple','hydro pole','pole','post','branches'] },
+      street:    { x: 30,  y: 168, w: 290, h: 32,  name: 'street', syn: ['road'] },
+    }
+  },
+  bean: {
+    bg: 'assets/bg/bean.png', placeholder: [1, 6, 8],
+    walk: { y0: 150, y1: 190 },
+    start: { x: 26, y: 172 },
+    exits: { left: 'street', right: 'school' },
+    hotspots: {
+      bean:    { x: 36,  y: 0,   w: 216, h: 150, name: 'the Bean', syn: ['coffee shop','cafe','shop','building'] },
+      door:    { x: 182, y: 48,  w: 40,  h: 98,  name: 'door', syn: ['front door','doorway','inside','go inside','enter'] },
+      spider:  { x: 172, y: 54,  w: 14,  h: 14,  name: 'spider', syn: ['web','little spider','tiny spider','bug'], sx: 179, sy: 68 },
+      window:  { x: 56,  y: 42,  w: 126, h: 76,  name: 'window', syn: ['big window'] },
+      gus:     { x: 188, y: 104, w: 26,  h: 42,  name: 'Gus', syn: ['ghost','barista','man','sheet'], sx: 201, sy: 146 },
+      table:   { x: 88,  y: 120, w: 58,  h: 22,  name: 'patio table', syn: ['table','patio'] },
+      cat:     { x: 102, y: 110, w: 24,  h: 14,  name: 'cat', syn: ['[cat]','kitty','pet','the cat'], sx: 114, sy: 124 },
+      glasses: { x: 102, y: 116, w: 20,  h: 10,  name: 'glasses', syn: ['spectacles','specs'], item: true, sx: 114, sy: 126 },
+      planter: { x: 15,  y: 120, w: 84,  h: 38,  name: 'planter', syn: ['planter box','flower box','flowers','box'] },
+      street:  { x: 0,   y: 158, w: 320, h: 42,  name: 'sidewalk', syn: ['street','road','pavement'] },
+    }
+  },
+  school: {
+    bg: 'assets/bg/school.png', placeholder: [1, 8, 7],
+    walk: { y0: 176, y1: 197 },
+    start: { x: 30, y: 190 },
+    exits: { left: 'bean' },
+    hotspots: {
+      school:  { x: 104, y: 0,   w: 152, h: 126, name: 'the school', syn: ['big school','building','old school','schoolhouse'] },
+      lantern: { x: 208, y: 30,  w: 28,  h: 24,  name: 'Great Pumpkin Lantern', syn: ['lantern','great lantern','pumpkin lantern','big pumpkin','pumpkin','top','tower top'] },
+      tower:   { x: 120, y: 0,   w: 80,  h: 124, name: 'bell tower', syn: ['steeple','spire','clock tower','belltower'] },
+      stairs:  { x: 20,  y: 124, w: 268, h: 58,  name: 'stairs', syn: ['steps','staircase','stair','big stairs','climb'] },
+      bigdoor: { x: 202, y: 76,  w: 40,  h: 48,  name: 'big door', syn: ['door','doors','wooden door'] },
+      plaque:  { x: 138, y: 146, w: 36,  h: 40,  name: 'plaque', syn: ['sign post','bronze plaque','post','inscription','writing'] },
+      plaza:   { x: 0,   y: 182, w: 320, h: 18,  name: 'plaza', syn: ['ground','square','stones','street'] },
+    }
+  }
+};
+
+// ---------------------------------------------------------------- SCRIPT
+// Every line of text lives here. Edit freely. No em dashes.
+const TXT = {
+  title: ["JAMES'S QUEST", "The Perils of the Royal City"],
+  intro: [
+    "It's Halloween night in the Royal City. That's Guelph. We call it that because it's royal.",
+    "Every year the Great Pumpkin Lantern on top of the school lights up, and THAT is when trick-or-treating starts. Everyone knows this.",
+    "Tonight it hasn't lit. Dad looked out the window and said \"huh\". Then he said \"hm\". Then he got his shoes on.",
+    "So. James. [costume] on. Bucket in hand. Dad beside you with a bundle of his signs under one arm, because he's running for school trustee and signs don't put up themselves.",
+    "Let's go find out what happened to that lantern."
+  ],
+  unknown: [
+    "Hm. Hmmmm. Not sure what you mean, bud.",
+    "That's a new one. Try something like LOOK AT, TAKE, USE, or TALK TO.",
+    "Dad tilts his head. \"Say again?\"",
+    "The narrator didn't catch that. The narrator is a little bit of a goose."
+  ],
+  cantTake: ["That's staying right where it is.", "No need to take that. It's doing fine.", "Nah. Leave it be."],
+  cantUse: ["That doesn't do anything here. Worth a try though!", "Nope. Good thinking, wrong spot.", "You hold it up. Nothing happens. Nothing minds."],
+  cantTalk: ["It doesn't say anything back. Which is fair.", "You say hi. It's a thing, so it stays quiet. Polite, though."],
+  nothingHere: ["Nothing like that here."],
+  inventoryEmpty: "Your bucket is empty. For now!",
+  inventoryTitle: "In the bucket:",
+  signsLeft: n => n === 1 ? "One sign left in the bundle." : `${n} signs left in the bundle.`,
+
+  // DAD: idle lines per screen (when nothing's unsolved), and hint tiers per puzzle.
+  dadIdle: {
+    street: ["\"Nice night for it, eh?\"", "\"Look at the leaves, bud. Poppin' off.\"", "\"Think the lantern's this way. Let's go right.\""],
+    bean:   ["\"The Bean. Beanie beanie beanie.\"", "\"Gus makes a good coffee. Terrible foam, good coffee.\"", "\"The school is just up the way. When you're ready.\""],
+    school: ["\"Big school. Big stairs. Big night.\"", "\"You've done so well, bud. Honestly.\"", "\"Up we go, whenever you're ready.\""],
+  },
+  dadHints: {
+    // street
+    pumpkinDark: ["\"Mrs. Patel's pumpkin is out. Bit sad, isn't it. Wonder if there's a light around.\"",
+                  "\"Candles live on porches on Halloween. Ours is right there.\"",
+                  "\"Grab the candle off our porch and use it on the pumpkin, bud.\""],
+    knock:       ["\"Their pumpkin's lit now. Bet they'd love a knock.\"",
+                  "\"Go on. Knock on the neighbours' door.\"",
+                  "\"Walk over and TALK TO the neighbours. They've got something for you.\""],
+    signA:       ["\"We've got signs to put up, remember? Start with somewhere we definitely have permission.\"",
+                  "\"Our lawn, bud. Ours. I'm pretty sure I'll say yes.\"",
+                  "\"PLACE SIGN on our lawn.\""],
+    // bean
+    spider:      ["\"I'm not going near that door. There's a... there's a situation on it.\"",
+                  "\"Look, it's tiny, I know it's tiny, it's just VERY tiny. Maybe say hello to it? You're braver than me.\"",
+                  "\"TALK TO the spider, bud. I'll be right here. By the window. Watching. Supportively.\""],
+    glasses:     ["\"Gus can't see a thing without his glasses. Where would glasses even go?\"",
+                  "\"That cat on the table looks very pleased about something.\"",
+                  "\"Pet the cat. Cats roll over when you pet them. Then look what's underneath.\""],
+    giveGlasses: ["\"You've got Gus's glasses! He's going to be thrilled.\"",
+                  "\"USE the glasses on Gus, bud.\""],
+    signB:       ["\"That planter would be a grand spot for a sign. Have to ask Gus first though.\"",
+                  "\"TALK TO Gus about the sign, then PLACE SIGN on the planter.\""],
+    // school
+    stairs:      ["\"That's a lot of stairs.\" Dad looks at the stairs. The stairs look back.",
+                  "\"Tell you what. Hop up. I've carried heavier. Barely.\"",
+                  "\"USE DAD on the stairs. Or just ask me to carry you. Either works.\""],
+    light:       ["\"We've got the flame right there in the jar. Up top it goes.\"",
+                  "\"USE the jar on the lantern, bud. This is the bit.\""],
+    noFlame:     ["\"Lantern's out, and we've got nothing to light it with. Yet.\"",
+                  "\"Somebody must have the flame. Gus at the Bean knows everything that happens on this street.\""],
+  },
+
+  // STREET
+  street: {
+    enter: "Our street. Waverly. Pumpkins on every porch except one.",
+    look: {
+      house: "Our house. Porch light on, like always. Dad's bike is leaning on the rail.",
+      porch: "Our porch. A candle in a little holder, waiting for a pumpkin.",
+      porchNoCandle: "Our porch. The candle's gone because you took it. Correct.",
+      candle: "A stubby candle in a holder. Still lit. Dad says that's \"a bit of a fire thing, let's be careful\".",
+      lawn: "Our lawn. Dad mowed it this week. He mentioned it twice.",
+      lawnSigned: "Our lawn, with a DAN ATKINSON sign on it. Dad keeps glancing at it.",
+      neighbour: "The neighbours'. Mrs. Patel and her boys. Their porch is dark tonight.",
+      pumpkin: "A big carved pumpkin with a lovely grin. Dark inside. Sad pumpkin.",
+      pumpkinLit: "The pumpkin is lit! Grinning like anything. Warm orange all over the porch.",
+      nlawn: "The neighbours' lawn. Tidy. Leaves raked into a pile the boys are going to jump in tomorrow.",
+      nlawnSigned: "The neighbours' lawn, now with a DAN ATKINSON sign on it. Mrs. Patel gave it a nod.",
+      pole: "The big maple on the corner. Half its leaves are on the ground. The other half are thinking about it.",
+      street: "Our street. Leaves everywhere. The good kind of mess.",
+    },
+    takeCandle: "You take the candle. Carefully. Two hands. Dad nods.",
+    useCandlePumpkin: ["You lean in and light the pumpkin. The grin glows. The whole porch goes warm orange.",
+                       "Dad: \"Oh, that's better. That's much better.\""],
+    useCandleWrong: "The candle goes on pumpkins, bud. Nothing else needs lighting.",
+    knockDark: "You knock. Nobody comes. Dad: \"They're probably out back. Pumpkin's not even lit, look.\"",
+    knockLit: ["You knock. Mrs. Patel opens the door and sees her pumpkin glowing.",
+               "Mrs. Patel: \"Oh! Was that you, James? Well. WELL.\" She goes away and comes back with two candies. Two!",
+               "Mrs. Patel: \"One for now, one for after. And tell your dad the sign can go on my lawn if he likes.\""],
+    knockDone: "Mrs. Patel waves from the window. The boys wave too. One of them is upside down.",
+    candy: "Two candies, purple wrappers. You can hear them crinkle in the bucket.",
+    eatCandy: "Dad: \"After, bud. We're on a mission.\" He says it kindly. He also eyes the candy.",
+    poleSign: ["You lean a sign against the big maple.",
+               "Dad: \"Trees are for climbing, bud. Signs are for lawns. The bylaw's very firm on this.\" Back in the bundle it goes."],
+    streetSign: "Not in the middle of the road, bud. Three cars would honk at once, in harmony.",
+    signA: ["You push the wire into our lawn. It wobbles. You straighten it. There.",
+            "Dad: \"Well, obviously.\" He's grinning though."],
+    signB_noAsk: "Dad: \"Have to ask first, bud. Even next door.\"",
+    signB: ["You push a sign into the neighbours' lawn, one big step back from the curb.",
+            "Mrs. Patel gives a thumbs up from the window. Dad gives one back. There's a lot of thumbs."],
+    tangle: ["You pull a sign out of the bundle. Two more come with it. Then another.",
+             "It's a sign hydra. Dad untangles it with the patience of a man who has done this before. \"Right. One at a time.\""],
+  },
+
+  // BEAN
+  bean: {
+    enter: "The Bean. Warm light in the window. Somebody inside is wearing a bedsheet.",
+    enterDad: "Dad stops on the sidewalk. \"Ah. Hm. So there's a spider.\"",
+    look: {
+      bean: "The Bean. Best coffee shop in Guelph, says Dad, who has not been to all of them but is confident.",
+      door: "The front door. A very small spider sits in the corner of the frame on a single strand of web.",
+      doorClear: "The front door. The spider has moved up to the corner and is waving. The door is all yours.",
+      spider: "A tiny spider. Honestly tiny. Big round eyes. It looks at you. You look at it.",
+      spiderHi: "The spider, up in the corner now, doing a little wave with one leg. Friends.",
+      window: "Through the window: a man in a bedsheet with eyeholes, bumping gently into the espresso machine.",
+      windowDad: "Dad's face, pressed to the glass, giving you a thumbs up. He's not coming in. He's VERY supportive from out here.",
+      gus: "Gus. He runs the Bean. Tonight he's a ghost: bedsheet, two eyeholes, glasses on the OUTSIDE of the sheet. Except there are no glasses.",
+      gusGlasses: "Gus, glasses back on the outside of his sheet where they belong. He can see again. He's delighted about it.",
+      table: "A patio table. One cat on it. Sitting very, very still.",
+      cat: "[cat]. Sitting with the exact stillness of a cat that is on top of something.",
+      catMoved: "[cat], rolled over and purring like a small engine. Nothing under there now. Just cat.",
+      glasses: "A pair of round glasses, slightly warm. Cat warm.",
+      planter: "A planter box by the patio, full of orange mums. Good soil. Sign soil.",
+      planterSigned: "The planter, with a DAN ATKINSON sign standing proud among the mums. One metre from the curb, darling.",
+      street: "The sidewalk outside the Bean. A little chalk drawing of a pumpkin. Somebody's good.",
+    },
+    talkSpider: ["You crouch down. \"Hi, spider.\"",
+                 "The spider lifts one leg. It waves. Then it scoots up its thread to the top corner, out of the way, still waving.",
+                 "Dad, from the sidewalk: \"Did it WAVE? Okay. Okay okay okay. That's... that's actually lovely. I'm still not coming in.\""],
+    talkSpiderAgain: "You wave. The spider waves. This could go on all night.",
+    doorBlocked: "Dad: \"I'll be right out here, bud. By the window. If you need me just holler.\" You can go in whenever you like. The spider is up in the corner now.",
+    doorSpider: "The spider is right there in the doorway, looking at you. It seems like it wants to say hello before anyone goes past.",
+    enterBean: "You step inside. Warm. Smells like cinnamon. Gus is feeling his way along the counter.",
+    talkGusBlind: ["Gus: \"Hello? Someone's there. Small someone. Is that James? I'd know that bucket anywhere. I can't see a THING.\"",
+                   "Gus: \"I put my glasses on the outside of the sheet, very clever, and then I took the sheet off to steam the milk, and then... well. Then they were gone.\"",
+                   "Gus: \"Also I may have borrowed the flame from the big lantern. To keep the milk warm. It's in a jar. I feel terrible. I was going to put it back, I just couldn't SEE.\""],
+    talkGusBlindAgain: "Gus: \"Any sign of my glasses? I've checked the counter nine times. The counter is not where they are.\"",
+    giveGlasses: ["You hand Gus his glasses. He puts them on the outside of the sheet. Blinks.",
+                  "Gus: \"JAMES. There you are! Where were they?\" You point at the cat. Gus: \"[cat]. Of course. Of course it was.\"",
+                  "Gus: \"Right. The flame.\" He hands you a jar with a small bright flame flickering inside. Warm in your hands. \"Take it up to the lantern, would you? And tell it I'm sorry.\""],
+    talkGusAfter: "Gus: \"Go on, bud, get that lantern lit. There's a hot chocolate here with your name on it after.\"",
+    talkGusSign: "Gus: \"A sign? In my planter? Only if it's one metre from the curb, darling. Those are the rules and I love rules.\" He winks through the eyehole. That's a yes.",
+    talkCat: ["You pet [cat]. [cat] considers this. Then [cat] rolls over with a thump and purrs like a little motor.",
+              "Under where [cat] was sitting: a pair of round glasses."],
+    talkCatAgain: "You pet [cat] again. [cat] permits it.",
+    takeGlasses: "You take the glasses. [cat] watches, pretending not to.",
+    jar: "A jar with a small bright flame in it. It's warm and it moves like it's thinking. The Great Pumpkin Lantern's flame.",
+    planterNoAsk: "Dad: \"Ask Gus first, bud. His planter.\"",
+    planterSign: ["You press the wire into the planter soil, a big step back from the curb.",
+                  "Gus: \"One metre! Look at that! A professional!\" Dad looks very pleased from the sidewalk."],
+    streetSign: "Not on the sidewalk, bud. That's for feet.",
+    beanSign: "Not on the building. Walls are not lawns.",
+  },
+
+  // SCHOOL
+  school: {
+    enter: "The school on the hill. The Great Pumpkin Lantern sits at the very top of the bell tower. Dark.",
+    enterLit: "The school on the hill. The Great Pumpkin Lantern blazes at the top. The whole yard is orange.",
+    look: {
+      school: "The big stone school. It has been up here longer than anyone's grandparents. Dad went here. So did his dad.",
+      lantern: "The Great Pumpkin Lantern. Big as a car. Dark. No glow, no grin. Just waiting.",
+      lanternLit: "The Great Pumpkin Lantern, lit! You can see the grin from here. You can probably see it from Kitchener.",
+      tower: "The tower. Tall. The lantern's at the top and the stairs are... a lot of stairs.",
+      stairs: "Stone stairs, up and up. Your legs look at them and say \"hmmmm\".",
+      stairsDone: "The stairs. You went up them on Dad's shoulders. Highly recommended.",
+      bigdoor: "A big wooden door with iron bits. Closed. The lantern's not in there anyway, it's up top.",
+      plaque: "A bronze plaque on a stone post. Long loopy letters. Very long. Very loopy.",
+      plaqueRead: "The plaque. Dad read it out: \"Only a true heart may relight me. Also please use the handrail.\"",
+      plaza: "The stone yard in front of the school. Leaves skittering about.",
+    },
+    plaqueDad: ["You look at the plaque. The letters are long and loopy.",
+                "Dad reads it out: \"Only a true heart may relight me. Also please use the handrail.\" He nods. \"Sound advice.\""],
+    stairsAlone: "You start up. Four steps. Seven. Your legs file a complaint.",
+    useDadStairs: ["Dad: \"Hop up.\" You climb onto his shoulders. He takes the stairs one at a time, with the handrail, like the plaque said.",
+                   "At the top the wind is up and the city is all little lights below. Dad is a bit out of breath. \"Worth it,\" he says."],
+    useDadElse: "Dad: \"I'm here, bud. What do you need?\"",
+    useJarLantern: ["You open the jar. The little flame hops out like it's been waiting all night, and lands inside the Great Pumpkin Lantern.",
+                    "It catches. It grows. The grin fills with orange. And then, all across Guelph, porch by porch, every pumpkin that was waiting lights up too.",
+                    "Dad doesn't say anything for a second. Then: \"You did that, bud.\""],
+    useJarEarly: "The lantern's way up top. You'll need to get up there first.",
+    lanternNoJar: "You reach toward the lantern. It's dark and a bit cold. Nothing to light it with yet.",
+    stepsSign: "Dad: \"That's a school, bud.\" And it is public property anyway. No sign.",
+    plazaSign: "Not on the plaza. Public property, and also stone.",
+  },
+
+  finale: [
+    "From up here you can see all of it. Our street. The Bean, with Gus waving a tea towel out the door. Every pumpkin on every porch, lit.",
+    "And three small signs, exactly where you put them.",
+    "Dad: \"Right. Trick or treating. Immediately. [funny thing James says].\"",
+  ],
+  credits: (score, signs) => [
+    "JAMES'S QUEST",
+    "The Perils of the Royal City",
+    "",
+    "Starring JAMES ATKINSON",
+    "and DAD",
+    "",
+    `Score: ${score} of ${MAX_SCORE}`,
+    `Signs placed: ${signs} of 3`,
+    signs === 3 ? "A great, great many thanks to you." : "",
+    "",
+    "Written with love by Ashley and Dad",
+    "Made in Guelph, the Royal City",
+    "",
+    "Happy Halloween, James.",
+    "",
+    "",
+    "Press Enter to play again",
+  ],
+};
+
+// ---------------------------------------------------------------- STATE
+const START = () => ({
+  screen: 'street', x: 40, y: 165, facing: 1,
+  score: 0, got: {}, flags: {}, inv: ['bucket'], signs: 3, placed: {},
+  seenIntro: false, done: false,
+});
+let S = START();
+const SAVE_KEY = 'jamesquest-small-v1';
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
+function load() { try { const s = localStorage.getItem(SAVE_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+
+// ---------------------------------------------------------------- ENGINE
+const cv = document.getElementById('game'), ctx = cv.getContext('2d');
+ctx.imageSmoothingEnabled = true;
+// The canvas is 960x600 but the game thinks in 320x200, which is what every
+// hotspot, walk band and sprite position in this file is written in. Scaling
+// the context by 3 once here means none of them had to change.
+//
+// The backgrounds are the Midjourney renders cropped and resized, not EGA
+// quantised. They were prompted as Sierra-style pixel art and arrived looking
+// the part, so quantising them was spending detail to manufacture a look they
+// already had - at 320x200 the pumpkin on the porch step stopped reading as a
+// pumpkin at all. scenes/backgrounds.py is the whole pipeline now.
+const PX = 3;
+ctx.scale(PX, PX);
+const bgImgs = {};
+// Optional picture sprites. If assets/sprites/<name>.png exists it replaces the
+// hand-pixeled one. Make them with tools/sprite.py (RGBA, game-pixel height,
+// facing right, feet at the bottom row).
+const IMGSPR = {}; const IMGSPR_NAMES = ['james', 'dad', 'gus', 'cat', 'spider', 'sign', 'pumpkin_dark', 'pumpkin_lit', 'candle', 'jar', 'patel', 'bucket', 'candy', 'glasses', 'dadicon'];
+for (const n of IMGSPR_NAMES) { const im = new Image(); im.src = 'assets/sprites/' + n + '.png'; im.onload = () => { IMGSPR[n] = im; }; im.onerror = () => {}; }
+function sprName(spr) { for (const k in SPR) if (SPR[k] === spr) return k; return null; }
+for (const k in SCREENS) { const im = new Image(); im.src = SCREENS[k].bg; im.onload = () => { bgImgs[k] = im; }; im.onerror = () => {}; }
+// The lit school is a second background rather than a screen: it replaces
+// school.png from the moment the lantern catches, and again under the
+// finale. Loaded the same guarded way, so a missing file falls back to the
+// old treatment instead of breaking the ending.
+{ const im = new Image(); im.src = 'assets/bg/school_lit.png'; im.onload = () => { bgImgs.school_lit = im; }; im.onerror = () => {}; }
+
+let debug = false, tick = 0, walkTarget = null, keys = {}, msgQueue = [], msgOpen = null, verbCoin = null, bucketOpen = false, selectedItem = null, finaleState = null;
+let dadX = 20, dadY = 165, dadFacing = 1, dadStep = 0;
+let awarded = {};
+
+// Twelve deeds at five points: nine award() calls plus the three signs.
+// This read "of 50" in three places and a child who finished the game was
+// shown 60 of 50, which looks like a bug to the one person who must not
+// think the game is broken.
+const MAX_SCORE = 60;
+function award(key, pts) { if (awarded[key]) return; awarded[key] = true; S.score += pts; S.got[key] = true; flash = { t: 30, txt: '+' + pts }; save(); }
+let flash = null;
+
+function say(lines) { if (!Array.isArray(lines)) lines = [lines]; for (const l of lines) msgQueue.push(fill(l)); if (!msgOpen) nextMsg(); }
+function nextMsg() { msgOpen = msgQueue.length ? msgQueue.shift() : null; }
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function fill(s) { return s.replace(/\[cat\]/g, FILL.cat).replace(/\[costume\]/g, FILL.costume).replace(/\[funny thing James says\]/g, FILL.funny); }
+
+// Fill these in. They are the only placeholders.
+const FILL = { cat: 'Valanice', costume: 'Super Kid suit', funny: 'Super Kid, away!' };
+
+function cur() { return SCREENS[S.screen]; }
+function hs(id) { return cur().hotspots[id]; }
+function has(item) { return S.inv.includes(item); }
+function give(item) { if (!has(item)) S.inv.push(item); }
+function drop(item) { S.inv = S.inv.filter(i => i !== item); }
+
+// walking
+// Pixels per frame. The loop runs at 15fps, which is the period feel and
+// stays. At the original 2 that was 30 pixels a second, so crossing the
+// street took eleven seconds and the six year old this is for spent most of
+// the game watching someone walk. At 4 it is five and a half, which is still
+// unhurried. Sierra shipped a walk-speed setting for the same reason.
+const STEP = 4;
+function clampWalk(x, y) { const w = cur().walk; return [Math.max(6, Math.min(314, x)), Math.max(w.y0, Math.min(w.y1, y))]; }
+function update() {
+  tick++;
+  if (S.flags.finalePending && !msgOpen && !msgQueue.length && !finaleState) { S.flags.finalePending = false; S.done = true; startFinale(); }
+  if (msgOpen || bucketOpen || verbCoin || finaleState) return;
+  let dx = 0, dy = 0;
+  if (keys.ArrowLeft) dx -= STEP; if (keys.ArrowRight) dx += STEP; if (keys.ArrowUp) dy -= 1; if (keys.ArrowDown) dy += 1;
+  if (dx || dy) walkTarget = null;
+  if (walkTarget) {
+    const tx = walkTarget.x - S.x, ty = walkTarget.y - S.y;
+    if (Math.abs(tx) <= STEP && Math.abs(ty) <= 1) { S.x = walkTarget.x; walkTarget.onArrive && walkTarget.onArrive(); walkTarget = null; }
+    else { dx = Math.sign(tx) * Math.min(STEP, Math.abs(tx)); dy = Math.sign(ty) * Math.min(1, Math.abs(ty)); }
+  }
+  if (dx || dy) {
+    if (dx) S.facing = dx > 0 ? 1 : -1;
+    [S.x, S.y] = clampWalk(S.x + dx, S.y + dy);
+    S.walking = true;
+    // exits
+    const ex = cur().exits;
+    if (S.x >= 314 && ex.right) goScreen(ex.right, 'left');
+    else if (S.x <= 6 && ex.left) goScreen(ex.left, 'right');
+  } else S.walking = false;
+  // dad follows
+  const gap = 22 * S.facing;
+  const dtx = S.x - gap, dty = S.y + 2;
+  const ddx = dtx - dadX, ddy = dty - dadY;
+  if (Math.abs(ddx) > 2 || Math.abs(ddy) > 1) { dadX += Math.sign(ddx) * Math.min(2, Math.abs(ddx)); dadY += Math.sign(ddy); dadFacing = ddx !== 0 ? Math.sign(ddx) : dadFacing; dadStep++; }
+}
+function goScreen(name, side) {
+  S.screen = name; const sc = SCREENS[name];
+  S.x = side === 'left' ? 8 : 312; S.y = Math.max(sc.walk.y0, Math.min(sc.walk.y1, S.y));
+  dadX = side === 'left' ? -10 : 330; dadY = S.y + 2; walkTarget = null;
+  onEnter(); save();
+}
+function onEnter() {
+  const n = S.screen;
+  if (!S.flags['seen_' + n]) {
+    S.flags['seen_' + n] = true;
+    if (n === 'street') say(TXT.street.enter);
+    if (n === 'bean') say([TXT.bean.enter, TXT.bean.enterDad]);
+    if (n === 'school') say(S.flags.lit ? TXT.school.enterLit : TXT.school.enter);
+  }
+}
+
+// ---------------------------------------------------------------- DRAW
+function drawSprite(spr, frame, x, y, flip) { // x,y = bottom-centre
+  const nm = sprName(spr), im = nm && IMGSPR[nm];
+  if (im) return drawImgSprite(im, frame, x, y, flip);
+  const f = spr.frames[frame % spr.frames.length]; const w = spr.w, h = spr.h;
+  const left = Math.round(x - w / 2), top = Math.round(y - h);
+  for (let r = 0; r < h; r++) for (let c = 0; c < w; c++) {
+    const ch = f[r][flip ? w - 1 - c : c]; const p = PAL[ch]; if (p == null) continue;
+    ctx.fillStyle = EGA[p]; ctx.fillRect(left + c, top + r, 1, 1);
+  }
+}
+function drawImgSprite(im, frame, x, y, flip) {
+  // The file is PX times the logical size, so that a sprite keeps its detail
+  // on a 960x600 canvas while the game goes on thinking in 320x200. Source
+  // rectangles are therefore in file pixels and destinations in game units.
+  const w = im.width / PX, h = im.height / PX;
+  const left = Math.round(x - w / 2), top = Math.round(y - h);
+  const legs = Math.max(4, Math.round(h * 0.38)); // bottom part that shuffles
+  const bob = frame ? 1 : 0, shift = frame === 1 ? 1 : frame === 2 ? -1 : 0;
+  ctx.save();
+  if (flip) { ctx.translate(left + w, 0); ctx.scale(-1, 1); ctx.translate(-left, 0); }
+  ctx.drawImage(im, 0, 0, w * PX, (h - legs) * PX, left, top - bob, w, h - legs);
+  ctx.drawImage(im, 0, (h - legs) * PX, w * PX, legs * PX, left + shift, top - bob + h - legs, w, legs);
+  if (frame) { ctx.drawImage(im, 0, (h - 2) * PX, w * PX, 2 * PX, left, top + h - 2 - bob, w, 2 + bob); }
+  ctx.restore();
+}
+function drawPlaceholder(sc) {
+  const [sky, ground, mid] = sc.placeholder;
+  ctx.fillStyle = EGA[sky]; ctx.fillRect(0, 0, 320, 200);
+  ctx.fillStyle = EGA[ground]; ctx.fillRect(0, sc.walk.y0 - 6, 320, 200);
+  ctx.fillStyle = EGA[mid]; ctx.fillRect(0, sc.walk.y0 - 30, 320, 26);
+  ctx.fillStyle = EGA[15]; ctx.font = '8px monospace'; ctx.fillText('missing ' + sc.bg, 8, 24);
+}
+function text(s, x, y, col = 0) { ctx.fillStyle = EGA[col]; ctx.font = '8px monospace'; ctx.textBaseline = 'top'; ctx.fillText(s, x, y); }
+function wrap(s, maxChars) { const words = s.split(' '), lines = []; let line = ''; for (const w of words) { if ((line + ' ' + w).trim().length > maxChars) { lines.push(line.trim()); line = w; } else line += ' ' + w; } if (line.trim()) lines.push(line.trim()); return lines; }
+
+function render() {
+  const sc = cur();
+  if (finaleState) return drawFinale();
+  // background
+  const bgKey = (S.screen === 'school' && S.flags.lit && bgImgs.school_lit) ? 'school_lit' : S.screen;
+  if (bgImgs[bgKey]) ctx.drawImage(bgImgs[bgKey], 0, 0, 320, 200); else drawPlaceholder(sc);
+  // scene sprites (drawn in y order with actors)
+  const draws = [];
+  const H = sc.hotspots;
+  if (S.screen === 'street') {
+    if (!has('candle') && !S.flags.pumpkinLit) draws.push({ y: H.candle.sy, f: () => drawSprite(SPR.candle, 0, H.candle.sx, H.candle.sy) });
+    draws.push({ y: H.pumpkin.sy, f: () => drawSprite(S.flags.pumpkinLit ? SPR.pumpkin_lit : SPR.pumpkin_dark, 0, H.pumpkin.sx, H.pumpkin.sy) });
+    // Mrs. Patel comes to the door and stays there. She is the best moment in
+    // the game and was text only until the campaign drew her. Guarded on the
+    // image rather than given a hand-pixeled fallback: there is no SPR.patel,
+    // and an absent neighbour is better than a crash.
+    if (S.flags.candyGot && IMGSPR.patel) draws.push({ y: 151, f: () => drawImgSprite(IMGSPR.patel, 0, 240, 153, false) });
+    if (S.placed.A) draws.push({ y: 176, f: () => drawSprite(SPR.sign, 0, 26, 170) });
+    if (S.placed.B) draws.push({ y: 164, f: () => drawSprite(SPR.sign, 0, 250, 162) });
+  }
+  if (S.screen === 'bean') {
+    const sp = H.spider; draws.push({ y: 300, f: () => drawSprite(SPR.spider, 0, S.flags.spiderHi ? sp.sx + 4 : sp.sx, S.flags.spiderHi ? sp.sy - 10 : sp.sy) });
+    draws.push({ y: H.gus.sy, f: () => drawSprite(SPR.gus, 0, H.gus.sx, H.gus.sy) });
+    if (S.flags.gusGlasses) draws.push({ y: 301, f: () => drawSprite(SPR.glasses, 0, H.gus.sx + 1, H.gus.sy - 28) });
+    if (S.flags.catMoved) draws.push({ y: H.cat.sy, f: () => drawSprite(SPR.cat, 0, H.cat.sx + 8, H.cat.sy, true) });
+    else draws.push({ y: H.cat.sy, f: () => drawSprite(SPR.cat, 0, H.cat.sx, H.cat.sy) });
+    if (S.flags.catMoved && !has('glasses') && !S.flags.gusGlasses) draws.push({ y: H.glasses.sy, f: () => drawSprite(SPR.glasses, 0, H.glasses.sx - 8, H.glasses.sy) });
+    if (S.placed.C) draws.push({ y: 147, f: () => drawSprite(SPR.sign, 0, 52, 152) });
+  }
+  if (S.screen === 'school') {
+    // Only fake the glow when there is no painted lit school to show. With
+    // one loaded this drew a yellow rectangle in the sky beside the real
+    // lantern, because the background had already changed underneath it.
+    if (S.flags.lit && !bgImgs.school_lit) { ctx.fillStyle = EGA[14]; const L = H.lantern; ctx.fillRect(L.x + 4, L.y + 4, L.w - 8, L.h - 8); ctx.fillStyle = EGA[12]; ctx.fillRect(L.x + 2, L.y + 2, L.w - 4, 2); }
+  }
+  // actors
+  const jf = S.walking ? (Math.floor(tick / 6) % 2 ? 1 : 2) : 0;
+  draws.push({ y: S.y, f: () => drawSprite(SPR.james, jf, S.x, S.y, S.facing < 0) });
+  const dmoving = Math.abs((S.x - 22 * S.facing) - dadX) > 2;
+  const df = dmoving ? (Math.floor(dadStep / 6) % 2 ? 1 : 2) : 0;
+  draws.push({ y: dadY, f: () => drawSprite(SPR.dad, df, dadX, dadY, dadFacing < 0) });
+  draws.sort((a, b) => a.y - b.y).forEach(d => d.f());
+
+  // status bar
+  ctx.fillStyle = EGA[15]; ctx.fillRect(0, 0, 320, 10);
+  text(`Score: ${S.score} of ${MAX_SCORE}`, 4, 1, 0);
+  text("James's Quest", 124, 1, 0);
+  text('Bucket', 284, 1, 0);
+  if (flash && flash.t > 0) { text(flash.txt, 92, 1, 4); flash.t--; }
+
+  if (debug) { ctx.fillStyle = 'rgba(0,255,0,.18)'; ctx.fillRect(0, sc.walk.y0, 320, sc.walk.y1 - sc.walk.y0); ctx.strokeStyle = '#f0f'; ctx.lineWidth = 1; for (const k in H) { const h = H[k]; ctx.strokeRect(h.x + .5, h.y + .5, h.w, h.h); text(k, h.x + 1, h.y + 1, 13); } }
+
+  if (verbCoin) drawVerbCoin();
+  if (bucketOpen) drawBucket();
+  if (msgOpen) drawMsg(msgOpen);
+}
+function box(x, y, w, h) { ctx.fillStyle = EGA[15]; ctx.fillRect(x, y, w, h); ctx.fillStyle = EGA[0]; ctx.fillRect(x, y, w, 1); ctx.fillRect(x, y + h - 1, w, 1); ctx.fillRect(x, y, 1, h); ctx.fillRect(x + w - 1, y, 1, h); ctx.fillRect(x + 2, y + 2, w - 4, 1); ctx.fillRect(x + 2, y + h - 3, w - 4, 1); ctx.fillRect(x + 2, y + 2, 1, h - 4); ctx.fillRect(x + w - 3, y + 2, 1, h - 4); }
+function drawMsg(m) {
+  const lines = wrap(m, 34); const h = lines.length * 10 + 16; const w = 296; const x = 12, y = Math.max(14, 100 - h / 2);
+  box(x, y, w, h); lines.forEach((l, i) => text(l, x + 8, y + 8 + i * 10, 0));
+  if (Math.floor(tick / 15) % 2) text('▼', x + w - 14, y + h - 10, 8);
+}
+function drawVerbCoin() {
+  const v = verbCoin; const items = ['Look', 'Take', 'Use', 'Talk']; const w = 44, h = 14;
+  const x0 = Math.max(2, Math.min(320 - w * 2 - 4, v.x - w)), y0 = Math.max(12, Math.min(200 - h * 2 - 4, v.y - h));
+  v.rects = [];
+  items.forEach((it, i) => { const x = x0 + (i % 2) * (w + 2), y = y0 + Math.floor(i / 2) * (h + 2); box(x, y, w, h); text(it, x + 8, y + 3, 0); v.rects.push({ x, y, w, h, it }); });
+}
+function drawBucket() {
+  box(30, 30, 260, 140); text(TXT.inventoryTitle, 40, 38, 0);
+  const items = S.inv.filter(i => i !== 'bucket'); let y = 52;
+  if (!items.length) { text(TXT.inventoryEmpty, 40, y, 8); y += 14; }
+  bucketRects = [];
+  for (const it of items) { const spr = ITEMS[it].spr; if (spr) drawSprite(SPR[spr], 0, 50, y + 10); text(ITEMS[it].name, 66, y + 1, selectedItem === it ? 4 : 0); bucketRects.push({ x: 36, y: y - 2, w: 240, h: 14, it }); y += 16; }
+  if (S.signs > 0) { drawSprite(SPR.sign, 0, 50, y + 12); text(TXT.signsLeft(S.signs), 66, y + 1, 0); y += 16; }
+  drawSprite(SPR.dadicon, 0, 50, y + 10); text('Dad (use him on things)', 66, y + 1, selectedItem === 'dad' ? 4 : 0); bucketRects.push({ x: 36, y: y - 2, w: 240, h: 14, it: 'dad' }); y += 16;
+  text('tap an item to pick it up, tap again to put it down', 40, 152, 8);
+}
+let bucketRects = [];
+
+const ITEMS = {
+  bucket:  { name: 'trick-or-treat bucket', spr: 'bucket', look: 'Your bucket. Orange, pumpkin face, a bit of a dent from last year. Perfect.' },
+  candle:  { name: 'candle', spr: 'candle', look: () => TXT.street.look.candle },
+  candy:   { name: 'candy (two)', spr: 'candy', look: () => TXT.street.candy },
+  glasses: { name: "Gus's glasses", spr: 'glasses', look: () => TXT.bean.look.glasses },
+  jar:     { name: 'jar with the flame', spr: 'jar', look: () => TXT.bean.jar },
+};
+
+// ---------------------------------------------------------------- FINALE
+function startFinale() {
+  finaleState = { t: 0, stage: 0 };
+  save();
+}
+function drawFinale() {
+  const f = finaleState; f.t++;
+  const litSchool = () => {
+    // With the painted lit school there is nothing to fake: it carries its
+    // own glow. The rectangles below are the fallback for a missing file -
+    // they were the whole of the climax until the campaign painted it.
+    if (bgImgs.school_lit) {
+      ctx.drawImage(bgImgs.school_lit, 0, 0, 320, 200);
+    } else {
+      if (bgImgs.school) ctx.drawImage(bgImgs.school, 0, 0, 320, 200); else drawPlaceholder(SCREENS.school);
+      const L = SCREENS.school.hotspots.lantern;
+      const pulse = Math.floor(f.t / 8) % 2; ctx.fillStyle = EGA[pulse ? 14 : 12]; ctx.fillRect(L.x + 2, L.y + 2, L.w - 4, L.h - 4);
+      ctx.fillStyle = EGA[14]; ctx.fillRect(L.x + 5, L.y + 6, 3, 3); ctx.fillRect(L.x + L.w - 8, L.y + 6, 3, 3); ctx.fillRect(L.x + 6, L.y + L.h - 8, L.w - 12, 2);
+    }
+    // little lit pumpkins appearing along the bottom of the plaza, one by one
+    for (let i = 0; i < Math.min(8, Math.floor(f.t / 10)); i++) drawSprite(SPR.pumpkin_lit, 0, 24 + i * 40, 198);
+    drawSprite(SPR.james, 0, 160, 190, false); drawSprite(SPR.dad, 0, 138, 192, false);
+  };
+  if (f.stage === 0) { litSchool(); ctx.fillStyle = EGA[15]; ctx.fillRect(0, 0, 320, 10); text(`Score: ${S.score} of ${MAX_SCORE}`, 4, 1, 0); if (f.t > 90) { f.stage = 1; f.t = 0; say(TXT.finale); } return; }
+  if (f.stage === 1) { litSchool(); if (msgOpen) drawMsg(msgOpen); else if (!msgQueue.length) { f.stage = 2; f.t = 0; } return; }
+  // credits
+  ctx.fillStyle = EGA[0]; ctx.fillRect(0, 0, 320, 200);
+  const lines = TXT.credits(S.score, Object.keys(S.placed).length);
+  const yOff = 200 - f.t * 0.5;
+  lines.forEach((l, i) => { const y = yOff + i * 12; if (y > -10 && y < 210) { const col = i < 2 ? 14 : 15; ctx.fillStyle = EGA[col]; ctx.font = '8px monospace'; ctx.textBaseline = 'top'; const w = ctx.measureText(l).width; ctx.fillText(l, 160 - w / 2, y); } });
+  if (yOff + lines.length * 12 < 100) f.t -= 0.5; // hold at end
+}
+
+// ---------------------------------------------------------------- PARSER
+const VERBS = {
+  look: ['look at', 'look', 'examine', 'l', 'inspect', 'see', 'check', 'read'],
+  take: ['take', 'get', 'pick up', 'grab', 'pickup'],
+  use: ['use', 'put', 'give', 'light', 'place', 'plant', 'hand'],
+  talk: ['talk to', 'talk', 'speak to', 'speak', 'say hi to', 'say hello to', 'hello', 'hi', 'chat with', 'pet', 'knock on', 'knock', 'ask'],
+  sign: ['place sign', 'put sign', 'put up sign', 'plant sign', 'sign here', 'put a sign', 'place a sign'],
+  dad: ['ask dad', 'dad', 'help', 'hint', 'what now', 'what do i do'],
+  inv: ['inventory', 'i', 'inv', 'bag', 'bucket', 'what do i have'],
+  climb: ['climb', 'go up', 'up'],
+  open: ['open'],
+  save: ['save'], restore: ['restore', 'load'], restart: ['restart', 'start over'],
+  eat: ['eat', 'unwrap'],
+};
+const FILLER = /\b(the|a|an|to|at|please|up|some|my|that|this)\b/g;
+function parse(raw) {
+  let s = raw.toLowerCase().replace(/[^a-z0-9' ]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!s) return;
+  // sign and dad first (multi-word)
+  if (VERBS.sign.some(v => s.startsWith(v)) || (s.includes('sign') && /(place|put|plant)/.test(s))) { const rest = s.replace(/.*sign( on| in| at)?/, '').replace(FILLER, ' ').trim(); return placeSign(findHotspot(rest)); }
+  if (VERBS.dad.includes(s) || s.startsWith('ask dad')) return askDad();
+  if (VERBS.inv.includes(s)) { bucketOpen = true; return; }
+  if (VERBS.save.includes(s)) { save(); return say('Saved. Like a good adventurer.'); }
+  if (VERBS.restore.includes(s)) { const l = load(); if (l) { S = l; onEnterQuiet(); return say('Restored.'); } return say('Nothing saved yet.'); }
+  if (VERBS.restart.includes(s)) { if (confirm('Start over from the beginning?')) { S = START(); awarded = {}; save(); beginIntro(); } return; }
+  let verb = null, rest = s;
+  for (const v in VERBS) { for (const syn of VERBS[v].sort((a, b) => b.length - a.length)) { if (s === syn || s.startsWith(syn + ' ')) { verb = v; rest = s.slice(syn.length).trim(); break; } } if (verb) break; }
+  if (verb === 'use') {
+    const m = rest.match(/^(.*?) (on|with|to|in|into|onto) (.*)$/);
+    if (m) { const a = m[1].replace(FILLER, ' ').replace(/\s+/g, ' ').trim(), b = m[3].replace(FILLER, ' ').replace(/\s+/g, ' ').trim(); const it = findItem(a) || (a.includes('dad') ? 'dad' : null); const target = findHotspot(b) || findItem(b); if (!it) return say(`You don't have ${a}.`); if (target && cur().hotspots[target]) return walkToThen(target, () => useOn(it, target)); return useOn(it, target); }
+  }
+  rest = rest.replace(FILLER, ' ').replace(/\s+/g, ' ').trim();
+  if (/^(dad )?(carry me|piggyback|pick me up|shoulders)/.test(rest) || /carry me|piggyback/.test(s)) return S.screen === 'school' ? climbStairs() : say(TXT.school.useDadElse);
+  if (!verb) { // maybe a bare noun: treat as look
+    const h = findHotspot(rest) || findItem(rest); if (h) return doVerb('look', h); return say(pick(TXT.unknown));
+  }
+  if (verb === 'use') {
+    const h = findHotspot(rest); const it = findItem(rest); if (h) return doVerb('use', h); if (it) return say(`Use ${ITEMS[it].name} on what?`); return say(pick(TXT.unknown));
+  }
+  if (verb === 'eat') return has('candy') ? say(TXT.street.eatCandy) : say("Nothing to eat. Yet.");
+  if (verb === 'climb') return doVerb('use', S.screen === 'school' ? 'stairs' : null);
+  if (verb === 'open') return doVerb('use', findHotspot(rest) || (S.screen === 'bean' ? 'door' : S.screen === 'school' ? 'bigdoor' : null));
+  if (verb === 'talk' && (rest === 'dad' || rest === 'to dad')) return askDad();
+  const target = findHotspot(rest) || findItem(rest);
+  if (!target && !rest && verb === 'talk' && S.screen === 'street') return doVerb('talk', 'neighbour');
+  if (!target) { if (!rest) return say(verb === 'look' ? lookAround() : `${verb.charAt(0).toUpperCase() + verb.slice(1)} what?`); return say(pick(TXT.nothingHere)); }
+  return doVerb(verb, target);
+}
+function findHotspot(noun) {
+  if (!noun) return null; noun = noun.replace(/\[cat\]/g, FILL.cat.toLowerCase());
+  const H = cur().hotspots;
+  const namesOf = id => { const h = H[id]; return [id, h.name.toLowerCase().replace(/^the /, ''), ...(h.syn || []).map(x => x.replace('[cat]', FILL.cat.toLowerCase()))]; };
+  for (const id in H) if (namesOf(id).some(n => noun === n || noun === 'the ' + n)) return id;
+  for (const id in H) if (namesOf(id).some(n => noun.endsWith(' ' + n) || n.endsWith(' ' + noun))) return id;
+  for (const id in H) if (namesOf(id).some(n => noun.includes(n) || n.includes(noun))) return id;
+  return null;
+}
+function findItem(noun) { if (!noun) return null; for (const id in ITEMS) { if (!has(id)) continue; const names = [id, ITEMS[id].name.toLowerCase()]; if (names.some(n => noun === n || noun.includes(n) || n.includes(noun))) return id; } if (noun.includes('dad')) return 'dad'; return null; }
+function lookAround() { return { street: TXT.street.enter, bean: TXT.bean.enter, school: S.flags.lit ? TXT.school.enterLit : TXT.school.enter }[S.screen]; }
+
+// ---------------------------------------------------------------- ACTIONS
+function walkToThen(id, fn) {
+  const h = hs(id); if (!h) return fn();
+  const tx = Math.max(10, Math.min(310, h.sx != null ? h.sx + 12 : h.x + h.w / 2)); const [cx, cy] = clampWalk(tx, h.sy != null ? h.sy + 4 : cur().walk.y0 + 10);
+  if (Math.abs(S.x - cx) < 20) return fn();
+  walkTarget = { x: cx, y: cy, onArrive: fn };
+}
+function doVerb(verb, id) {
+  if (!id) return say(pick(TXT.unknown));
+  if (ITEMS[id] && has(id)) { // inventory item
+    if (verb === 'look') { const l = ITEMS[id].look; return say(typeof l === 'function' ? l() : l); }
+    if (verb === 'use') return say(`Use ${ITEMS[id].name} on what?`);
+    if (verb === 'take') return say('Already got it, bud.');
+    return say(pick(TXT.cantTalk));
+  }
+  const sc = S.screen;
+  if (verb === 'look') return say(lookAt(id));
+  walkToThen(id, () => {
+    if (verb === 'take') return takeIt(id);
+    if (verb === 'talk') return talkTo(id);
+    if (verb === 'use') return useOn(selectedItem, id);
+  });
+}
+function lookAt(id) {
+  const L = TXT[S.screen].look, f = S.flags;
+  if (S.screen === 'street') {
+    if (id === 'porch') return has('candle') || f.pumpkinLit ? L.porchNoCandle : L.porch;
+    if (id === 'pumpkin') return f.pumpkinLit ? L.pumpkinLit : L.pumpkin;
+    if (id === 'lawn') return S.placed.A ? L.lawnSigned : L.lawn;
+    if (id === 'nlawn') return S.placed.B ? L.nlawnSigned : L.nlawn;
+    if (id === 'candle' && (has('candle') || f.pumpkinLit)) return L.porchNoCandle;
+  }
+  if (S.screen === 'bean') {
+    if (id === 'door') return f.spiderHi ? L.doorClear : L.door;
+    if (id === 'spider') return f.spiderHi ? L.spiderHi : L.spider;
+    if (id === 'window') return f.inside ? L.windowDad : L.window;
+    if (id === 'gus') return f.gusGlasses ? L.gusGlasses : L.gus;
+    if (id === 'cat') return f.catMoved ? L.catMoved : L.cat;
+    if (id === 'glasses') return f.catMoved && !has('glasses') && !f.gusGlasses ? L.glasses : (f.catMoved ? L.catMoved : L.cat);
+    if (id === 'planter') return S.placed.C ? L.planterSigned : L.planter;
+  }
+  if (S.screen === 'school') {
+    if (id === 'lantern') return f.lit ? L.lanternLit : L.lantern;
+    if (id === 'stairs') return f.upstairs ? L.stairsDone : L.stairs;
+    if (id === 'plaque') { if (!f.plaqueRead) { f.plaqueRead = true; return TXT.school.plaqueDad; } return L.plaqueRead; }
+  }
+  return L[id] || pick(TXT.unknown);
+}
+function takeIt(id) {
+  const f = S.flags;
+  if (S.screen === 'street' && (id === 'candle' || (id === 'porch' && !has('candle') && !f.pumpkinLit))) { if (has('candle') || f.pumpkinLit) return say(TXT.street.look.porchNoCandle); give('candle'); award('candle', 5); return say(TXT.street.takeCandle); }
+  if (S.screen === 'street' && id === 'pumpkin') return say("It's the neighbours' pumpkin, bud. Leave it. But maybe light it?");
+  if (S.screen === 'bean' && (id === 'glasses' || (id === 'cat' && f.catMoved && !has('glasses') && !f.gusGlasses))) { if (!f.catMoved) return say(TXT.bean.look.cat); if (has('glasses') || f.gusGlasses) return say(TXT.bean.look.catMoved); give('glasses'); award('glasses', 5); return say(TXT.bean.takeGlasses); }
+  if (S.screen === 'bean' && id === 'cat') return say(`${FILL.cat} is not for taking. ${FILL.cat} has made that clear.`);
+  if (S.screen === 'bean' && id === 'spider') return say("You don't take spiders, bud. You say hello to them.");
+  return say(pick(TXT.cantTake));
+}
+function talkTo(id) {
+  const f = S.flags, B = TXT.bean, St = TXT.street;
+  if (S.screen === 'street') {
+    if (id === 'neighbour') { if (f.candyGot) return say(St.knockDone); if (!f.pumpkinLit) return say(St.knockDark); f.candyGot = true; f.askedB = true; give('candy'); award('candy', 5); return say(St.knockLit); }
+    if (id === 'pumpkin') return say(f.pumpkinLit ? "The pumpkin grins. It's good at that." : "The pumpkin would say something if it were lit. It's not. It's thinking about it.");
+  }
+  if (S.screen === 'bean') {
+    if (id === 'spider') { if (f.spiderHi) return say(B.talkSpiderAgain); f.spiderHi = true; award('spider', 5); return say(B.talkSpider); }
+    if (id === 'cat') { if (f.catMoved) return say(B.talkCatAgain); f.catMoved = true; award('cat', 5); return say(B.talkCat); }
+    if (id === 'gus') { if (!f.spiderHi) return say(B.doorSpider); f.inside = true; if (f.gusGlasses) return say(f.askedC ? B.talkGusAfter : (f.askedC = true, [B.talkGusAfter, B.talkGusSign])); if (f.talkedGus) return say(B.talkGusBlindAgain); f.talkedGus = true; return say(B.talkGusBlind); }
+    if (id === 'door') return say(f.spiderHi ? B.doorBlocked : B.doorSpider);
+  }
+  if (S.screen === 'school') { if (id === 'plaque') return say(lookAt('plaque')); }
+  return say(pick(TXT.cantTalk));
+}
+function useOn(item, id) {
+  const f = S.flags, St = TXT.street, B = TXT.bean, C = TXT.school;
+  selectedItem = null;
+  if (item === 'dad') {
+    if (S.screen === 'school' && (id === 'stairs' || id === 'tower' || id === 'lantern')) return climbStairs();
+    return say(C.useDadElse);
+  }
+  if (!item) { // "use X" with no item
+    if (S.screen === 'street' && id === 'pumpkin') return has('candle') ? useOn('candle', 'pumpkin') : say(St.look.pumpkin);
+    if (S.screen === 'street' && id === 'neighbour') return talkTo('neighbour');
+    if (S.screen === 'street' && (id === 'candle' || id === 'porch')) return takeIt('candle');
+    if (S.screen === 'bean' && id === 'door') return talkTo('door');
+    if (S.screen === 'bean' && id === 'cat') return talkTo('cat');
+    if (S.screen === 'school' && id === 'stairs') { if (f.upstairs) return say(C.look.stairsDone); f.triedStairs = true; return say([C.stairsAlone, TXT.dadHints.stairs[1]]); }
+    if (S.screen === 'school' && id === 'lantern') return f.upstairs ? (has('jar') ? useOn('jar', 'lantern') : say(C.lanternNoJar)) : say(C.useJarEarly);
+    if (S.screen === 'school' && id === 'bigdoor') return say(C.look.bigdoor);
+    return say(pick(TXT.cantUse));
+  }
+  if (item === 'candle') { if (S.screen === 'street' && id === 'pumpkin') { if (f.pumpkinLit) return say(St.look.pumpkinLit); f.pumpkinLit = true; drop('candle'); award('pumpkin', 5); return say(St.useCandlePumpkin); } return say(St.useCandleWrong); }
+  if (item === 'glasses') { if (S.screen === 'bean' && id === 'gus') { if (!f.spiderHi) return say(B.doorSpider); f.gusGlasses = true; f.inside = true; drop('glasses'); give('jar'); award('flame', 5); return say(B.giveGlasses); } return say("Those are Gus's. He needs them more than that does."); }
+  if (item === 'jar') { if (S.screen === 'school' && id === 'lantern') { if (!f.upstairs) return say(C.useJarEarly); f.lit = true; drop('jar'); award('lantern', 5); say(C.useJarLantern); f.finalePending = true; return; } return say("The flame stays in the jar until it's home."); }
+  if (item === 'candy') { if (S.screen === 'bean' && id === 'cat') return say(`${FILL.cat} sniffs the candy and gives you a look. Cats don't do candy.`); if (id === 'gus' || id === 'neighbour') return say("That's yours, bud. Keep it."); return say(St.eatCandy); }
+  return say(pick(TXT.cantUse));
+}
+function climbStairs() { const f = S.flags; if (f.upstairs) return say(TXT.school.look.stairsDone); f.upstairs = true; award('stairs', 5); return say(TXT.school.useDadStairs); }
+function placeSign(id) {
+  const f = S.flags, St = TXT.street, B = TXT.bean, C = TXT.school;
+  if (S.signs <= 0) return say("No signs left in the bundle. You placed them all!");
+  const go = (lines, key) => { const tangle = !f.tangled ? (f.tangled = true, St.tangle) : null; S.signs--; S.placed[key] = true; award('sign' + key, 5); say(tangle ? [...tangle, ...lines] : lines); };
+  if (S.screen === 'street') {
+    if (id === 'lawn' || id === 'house' || id === 'porch') return S.placed.A ? say(St.look.lawnSigned) : go(St.signA, 'A');
+    if (id === 'nlawn' || id === 'neighbour') { if (S.placed.B) return say(St.look.nlawnSigned); if (!f.askedB) return say(St.signB_noAsk); return go(St.signB, 'B'); }
+    if (id === 'pole') return say(St.poleSign);
+    if (id === 'street') return say(St.streetSign);
+  }
+  if (S.screen === 'bean') {
+    if (id === 'planter') { if (S.placed.C) return say(B.look.planterSigned); if (!f.askedC) return say(B.planterNoAsk); return go(B.planterSign, 'C'); }
+    if (id === 'street') return say(B.streetSign);
+    if (id === 'bean' || id === 'door' || id === 'window') return say(B.beanSign);
+  }
+  if (S.screen === 'school') { if (id === 'stairs' || id === 'school' || id === 'bigdoor') return say(C.stepsSign); return say(C.plazaSign); }
+  return say("Where, bud? Try PLACE SIGN ON LAWN.");
+}
+function askDad() {
+  const f = S.flags, H = TXT.dadHints; let key = null;
+  if (S.screen === 'street') { if (!f.pumpkinLit) key = 'pumpkinDark'; else if (!f.candyGot) key = 'knock'; else if (!S.placed.A) key = 'signA'; }
+  if (S.screen === 'bean') { if (!f.spiderHi) key = 'spider'; else if (!f.catMoved) key = 'glasses'; else if (!f.gusGlasses) key = has('glasses') ? 'giveGlasses' : 'glasses'; else if (!S.placed.C) key = 'signB'; }
+  if (S.screen === 'school') { if (!has('jar') && !f.lit) key = 'noFlame'; else if (!f.upstairs) key = 'stairs'; else if (!f.lit) key = 'light'; }
+  if (!key) return say(pick(TXT.dadIdle[S.screen]));
+  const n = (S.flags['hint_' + key] || 0); S.flags['hint_' + key] = n + 1;
+  const tiers = H[key]; return say(tiers[Math.min(n, tiers.length - 1)]);
+}
+
+// ---------------------------------------------------------------- INPUT
+const cmd = document.getElementById('cmd');
+function run(line) { if (!line.trim()) return; cmd.value = ''; echo(line); parse(line); }
+function echo(line) { cmd.placeholder = '> ' + line; }
+cmd.addEventListener('keydown', e => { if (e.key === 'Enter') { run(cmd.value); e.preventDefault(); } if (e.key === 'Escape') cmd.blur(); e.stopPropagation(); });
+document.getElementById('askdad').onclick = () => { if (msgOpen) { nextMsg(); return; } echo('ask dad'); askDad(); };
+document.getElementById('bucketbtn').onclick = () => { if (msgOpen) nextMsg(); else bucketOpen = !bucketOpen; };
+window.addEventListener('keydown', e => {
+  if (e.target === cmd) return;
+  if (finaleState && finaleState.stage === 2 && e.key === 'Enter') { S = START(); awarded = {}; finaleState = null; save(); beginIntro(); return; }
+  if (msgOpen && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) { nextMsg(); e.preventDefault(); return; }
+  if (e.key === 'h' || e.key === 'H') { debug = !debug; return; }
+  if (e.key === 'F5') { e.preventDefault(); save(); say('Saved.'); return; }
+  if (e.key === 'F7') { e.preventDefault(); const l = load(); if (l) { S = l; say('Restored.'); } return; }
+  if (e.key.startsWith('Arrow')) { keys[e.key] = true; e.preventDefault(); return; }
+  if (e.key.length === 1 && !e.metaKey && !e.ctrlKey) { cmd.focus(); }
+});
+window.addEventListener('keyup', e => { if (e.key.startsWith('Arrow')) keys[e.key] = false; });
+document.querySelectorAll('#touchpad button').forEach(b => { const k = b.dataset.k; const on = e => { e.preventDefault(); keys[k] = true; }; const off = e => { e.preventDefault(); keys[k] = false; }; b.addEventListener('touchstart', on); b.addEventListener('touchend', off); b.addEventListener('mousedown', on); b.addEventListener('mouseup', off); b.addEventListener('mouseleave', off); });
+if ('ontouchstart' in window) document.body.classList.add('touch');
+
+function canvasPoint(e) { const r = cv.getBoundingClientRect(); const t = e.touches ? e.touches[0] : e; return { x: Math.floor((t.clientX - r.left) / r.width * 320), y: Math.floor((t.clientY - r.top) / r.height * 200) }; }
+function hitHotspot(p) { const H = cur().hotspots; let best = null, bestArea = 1e9; for (const id in H) { const h = H[id]; if (p.x >= h.x && p.x <= h.x + h.w && p.y >= h.y && p.y <= h.y + h.h) { const a = h.w * h.h; if (a < bestArea) { best = id; bestArea = a; } } } return best; }
+function onTap(e) {
+  e.preventDefault(); const p = canvasPoint(e);
+  if (finaleState) { if (finaleState.stage === 2) { S = START(); awarded = {}; finaleState = null; save(); beginIntro(); } else if (msgOpen) nextMsg(); return; }
+  if (msgOpen) { nextMsg(); return; }
+  if (p.y < 10 && p.x > 270) { bucketOpen = !bucketOpen; return; }
+  if (bucketOpen) { const r = bucketRects.find(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h); if (r) { selectedItem = selectedItem === r.it ? null : r.it; if (selectedItem) { bucketOpen = false; echo('use ' + (r.it === 'dad' ? 'dad' : ITEMS[r.it].name) + ' on...'); } } else bucketOpen = false; return; }
+  if (verbCoin) { const r = verbCoin.rects.find(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h); const id = verbCoin.id; verbCoin = null; if (r) { echo(r.it.toLowerCase() + ' ' + hs(id).name); doVerb(r.it.toLowerCase(), id); } return; }
+  if (debug) console.log('tap', p);
+  const id = hitHotspot(p);
+  if (selectedItem) { if (id) { echo('use ' + (selectedItem === 'dad' ? 'dad' : ITEMS[selectedItem].name) + ' on ' + hs(id).name); walkToThen(id, () => useOn(selectedItem, id)); } else selectedItem = null; return; }
+  if (id && !['street', 'plaza'].includes(id)) { verbCoin = { x: p.x, y: p.y, id }; return; }
+  const [x, y] = clampWalk(p.x, p.y); walkTarget = { x, y };
+}
+cv.addEventListener('mousedown', onTap); cv.addEventListener('touchstart', onTap, { passive: false });
+
+document.getElementById('crtbtn').onclick = () => { const m = document.getElementById('monitor'); m.classList.toggle('crt'); document.getElementById('crtbtn').textContent = 'CRT: ' + (m.classList.contains('crt') ? 'on' : 'off'); fit(); };
+function fit() {
+  const stage = document.getElementById('stage'); const crt = document.getElementById('monitor').classList.contains('crt');
+  const pad = crt ? 0.9 : 1; const availW = stage.clientWidth * pad, availH = (stage.clientHeight - 60) * pad;
+  let scale = Math.min(availW / 320, availH / 200);
+  scale = scale >= 2 ? Math.floor(scale) : Math.max(0.9, Math.floor(scale * 10) / 10);
+  cv.style.width = (320 * scale) + 'px'; cv.style.height = (200 * scale) + 'px';
+  document.getElementById('screenwrap').style.width = (320 * scale) + 'px'; document.getElementById('screenwrap').style.height = (200 * scale + 40) + 'px';
+}
+window.addEventListener('resize', fit);
+if (window.innerWidth < 700) { document.getElementById('monitor').classList.remove('crt'); document.getElementById('crtbtn').textContent = 'CRT: off'; }
+fit();
+
+// ---------------------------------------------------------------- START
+function onEnterQuiet() { dadX = S.x - 22; dadY = S.y + 2; }
+function beginIntro() { S.flags.seen_street = true; say([...TXT.intro]); }
+(function boot() {
+  const l = load();
+  if (l && !l.done && confirm("Continue where you left off?")) { S = l; awarded = {}; for (const k in S.got) awarded[k] = true; onEnterQuiet(); }
+  else { S = START(); beginIntro(); }
+  setInterval(() => { update(); render(); }, 1000 / 15);
+})();
+</script>
+</body>
+</html>

@@ -1162,6 +1162,33 @@ html[data-motion="reduced"] .hw-spider.is-down .hw-spider__thread { height: clam
 .hw-found p { color: var(--muted); }
 .hw-found__next { border-top: 2px solid var(--hairline); padding-top: 14px; }
 
+/* --- the game overlay ----------------------------------------------------- */
+/* The game is its own page at quest/ and opens in a full screen iframe. A
+   native <dialog>, so the focus trap, the top layer and the return of focus
+   come from the browser rather than from me.
+
+   Deliberately not themed off the palette tokens: the thing inside is a 1988
+   EGA screen with its own black surround, and a cyan campaign frame around it
+   would fight it. The close button is plain white on near-black, which is
+   legible in every mode including high contrast, so this block needs no
+   seasonal or contrast guard. */
+.hw-quest {
+  border: 0; padding: 0; margin: 0;
+  width: 100vw; height: 100vh;
+  max-width: 100vw; max-height: 100vh;
+  background: #141414; overflow: hidden;
+}
+.hw-quest::backdrop { background: #000; }
+.hw-quest__frame { display: block; width: 100%; height: 100%; border: 0; }
+.hw-quest__close {
+  position: absolute; top: 10px; left: 10px; z-index: 2;
+  min-height: 44px; padding: 10px 16px;
+  font: 700 0.9375rem/1.2 var(--sans); cursor: pointer;
+  color: #FFFFFF; background: #141414;
+  border: 2px solid #FFFFFF; border-radius: 8px;
+}
+.hw-quest__close:hover { color: #141414; background: #FFFFFF; }
+
 /* --- James's Quest -------------------------------------------------------- */
 /* A small parser adventure hidden behind the two eggs, built for the
    candidate's six year old, who loves the old Sierra games. It is an homage

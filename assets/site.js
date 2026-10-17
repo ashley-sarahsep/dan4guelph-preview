@@ -347,7 +347,7 @@
      nothing else, so that a diff between the two public repositories stays
      worth reading. A fourth difference, in a second file, would cost more
      than it buys. */
-  var QUEST_READY = false;
+  var QUEST_READY = true; /* BUILD:QUEST */
 
   function art(inner) {
     return '<svg class="quest__scene" viewBox="0 0 320 132" aria-hidden="true">' + inner + '</svg>';
@@ -794,6 +794,48 @@
      in storage. */
   var pumpkinFound = false;
 
+  /* The game proper lives at quest/ as its own page and opens in a full
+     screen overlay. A native <dialog> rather than a hand-rolled div, for the
+     same reason the photo lightbox uses one: showModal() supplies the focus
+     trap, the top layer and the return of focus, and gets them right.
+
+     The src is relative, not "/quest/". GitHub Pages serves the preview from
+     a subfolder, so a leading slash would resolve to the domain root and 404
+     there while working on the live site - the worst kind of bug to ship.
+
+     Escape closes it only while focus is in the page. Once the player clicks
+     into the game's command box, focus is inside the iframe and key events do
+     not cross that boundary, so the close button is the way out from there.
+     A postMessage handshake would fix that and would mean editing a game file
+     that is meant to stay standalone; the button is always visible and a six
+     year old finds it faster than Escape anyway.
+
+     The iframe is built on the press and its src is dropped on close, so the
+     game is never fetched by a reader who does not go looking, and nothing of
+     it is left running behind the page. */
+  var questFrame = null;
+
+  function openQuestFrame() {
+    if (!questFrame) {
+      questFrame = document.createElement('dialog');
+      questFrame.className = 'hw-quest';
+      questFrame.setAttribute('aria-label', HERO + "'s Quest");
+      questFrame.innerHTML =
+        '<button type="button" class="hw-quest__close">Close the game</button>' +
+        '<iframe class="hw-quest__frame" title="' + HERO + "'s Quest\" " +
+        'allow="fullscreen"></iframe>';
+      questFrame.querySelector('.hw-quest__close')
+        .addEventListener('click', function () { questFrame.close(); });
+      questFrame.addEventListener('close', function () {
+        var f = questFrame.querySelector('.hw-quest__frame');
+        if (f) f.removeAttribute('src');
+      });
+      document.body.appendChild(questFrame);
+    }
+    questFrame.querySelector('.hw-quest__frame').setAttribute('src', 'quest/');
+    if (typeof questFrame.showModal === 'function') questFrame.showModal();
+  }
+
   function addSpider(hero) {
     /* A real <button> from the start, but hidden from the accessibility tree
        and out of the tab order while it is only a spider. The moment the
@@ -808,7 +850,7 @@
     sp.innerHTML = '<span class="hw-spider__thread"></span>' + SPIDER;
     if (QUEST_READY && pumpkinFound) unmaskSpider(sp);
     sp.addEventListener('click', function () {
-      if (QUEST_READY && pumpkinFound) { openQuest(); return; }
+      if (QUEST_READY && pumpkinFound) { openQuestFrame(); return; }
       /* Hover does the work on a pointer; a tap has no hover, so a touch
          drops it and it climbs back on its own. */
       sp.classList.add('is-down');
@@ -881,11 +923,12 @@
          behind an open quest, which is the one place it must never appear. */
       if (found && found.open) found.close();
       if (quest && quest.open) quest.close();
+      if (questFrame) { questFrame.close(); questFrame.remove(); questFrame = null; }
       pumpkinFound = false;
       return;
     }
     if (hero) addSpider(hero);
-    if (footer) addPumpkin(footer);
+    if (QUEST_READY && footer) addPumpkin(footer);
   }
 
   /* A stored choice is already on <html> by now, so catch up before painting
