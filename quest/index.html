@@ -918,8 +918,17 @@ function render() {
 }
 function box(x, y, w, h) { ctx.fillStyle = EGA[15]; ctx.fillRect(x, y, w, h); ctx.fillStyle = EGA[0]; ctx.fillRect(x, y, w, 1); ctx.fillRect(x, y + h - 1, w, 1); ctx.fillRect(x, y, 1, h); ctx.fillRect(x + w - 1, y, 1, h); ctx.fillRect(x + 2, y + 2, w - 4, 1); ctx.fillRect(x + 2, y + h - 3, w - 4, 1); ctx.fillRect(x + 2, y + 2, 1, h - 4); ctx.fillRect(x + w - 3, y + 2, 1, h - 4); }
 function drawMsg(m) {
-  const lines = wrap(m, 34); const h = lines.length * 10 + 16; const w = 296; const x = 12, y = Math.max(14, 100 - h / 2);
-  box(x, y, w, h); lines.forEach((l, i) => text(l, x + 8, y + 8 + i * 10, 0));
+  // Wrap to what the box actually holds, measured, rather than to a number
+  // typed next to it. It was 34 characters in a box with room for 58, so
+  // every line of narration stopped two thirds of the way across and the
+  // box was mostly empty. PAD is the text inset on each side and ARROW
+  // reserves the corner the blinking more-text marker sits in.
+  const w = 296, PAD = 8, ARROW = 16, x = 12;
+  ctx.font = '8px monospace';
+  const cols = Math.max(20, Math.floor((w - PAD * 2 - ARROW) / (ctx.measureText('M').width || 4.8)));
+  const lines = wrap(m, cols); const h = lines.length * 10 + 16;
+  const y = Math.max(14, 100 - h / 2);
+  box(x, y, w, h); lines.forEach((l, i) => text(l, x + PAD, y + 8 + i * 10, 0));
   if (Math.floor(tick / 15) % 2) text('▼', x + w - 14, y + h - 10, 8);
 }
 function drawVerbCoin() {
