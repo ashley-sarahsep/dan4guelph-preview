@@ -40,7 +40,7 @@
       <canvas id="game" width="960" height="600"></canvas>
       <div id="crtfx"></div>
       <div id="cmdrow">
-        <input id="cmd" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="type something, or tap things in the picture">
+        <input id="cmd" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="arrow keys to walk, tap a thing, or type">
         <button class="btn" id="askdad">Ask Dad</button>
         <button class="btn" id="bucketbtn">Bucket</button>
       </div>
@@ -452,7 +452,7 @@ const SCREENS = {
       porch:     { x: 12,  y: 118, w: 44,  h: 30,  name: 'porch', syn: ['step','steps','our step'] },
       candle:    { x: 19,  y: 127, w: 11,  h: 13,  name: 'candle', syn: ['light'], item: true, sx: 25, sy: 140 },
       lawn:      { x: 0,   y: 148, w: 46,  h: 26,  name: "our lawn", syn: ['lawn','grass','yard','our yard','front lawn'] },
-      neighbour: { x: 208, y: 56,  w: 90,  h: 96,  name: "the neighbours' house", syn: ['neighbour','neighbor','neighbours','neighbors','neighbour house','door','their door','knock','mrs patel','patel'] },
+      neighbour: { x: 208, y: 56,  w: 90,  h: 96,  name: "the neighbours' house", syn: ['neighbour','neighbor','neighbours','neighbors','neighbour house','door','their door','knock','mrs patel','patel'], as: { talk: 'knock on their door' } },
       pumpkin:   { x: 246, y: 136, w: 18,  h: 18,  name: 'pumpkin', syn: ['jack o lantern','jackolantern','lantern','pumpkins','their pumpkin'], sx: 255, sy: 152 },
       nlawn:     { x: 186, y: 150, w: 134, h: 18,  name: "the neighbours' lawn", syn: ['their lawn','neighbour lawn','neighbor lawn','their grass','their yard'] },
       pole:      { x: 230, y: 0,   w: 90,  h: 82,  name: 'big tree', syn: ['tree','maple','hydro pole','pole','post','branches'] },
@@ -472,7 +472,7 @@ const SCREENS = {
       gus:     { x: 188, y: 104, w: 26,  h: 42,  name: 'Gus', syn: ['ghost','barista','man','sheet'], sx: 201, sy: 146 },
       table:   { x: 88,  y: 120, w: 58,  h: 22,  name: 'patio table', syn: ['table','patio'] },
       cat:     { x: 102, y: 110, w: 24,  h: 14,  name: 'cat', syn: ['[cat]','kitty','pet','the cat'], sx: 114, sy: 124 },
-      glasses: { x: 102, y: 116, w: 20,  h: 10,  name: 'glasses', syn: ['spectacles','specs'], item: true, sx: 114, sy: 126 },
+      glasses: { x: 102, y: 116, w: 20,  h: 10,  name: 'glasses', syn: ['spectacles','specs'], item: true, when: 'catMoved', sx: 114, sy: 126 },
       planter: { x: 15,  y: 120, w: 84,  h: 38,  name: 'planter', syn: ['planter box','flower box','flowers','box'] },
       street:  { x: 0,   y: 158, w: 320, h: 42,  name: 'sidewalk', syn: ['street','road','pavement'] },
     }
@@ -484,7 +484,7 @@ const SCREENS = {
     exits: { left: 'bean' },
     hotspots: {
       school:  { x: 104, y: 0,   w: 152, h: 126, name: 'the school', syn: ['big school','building','old school','schoolhouse'] },
-      lantern: { x: 208, y: 30,  w: 28,  h: 24,  name: 'Great Pumpkin Lantern', syn: ['lantern','great lantern','pumpkin lantern','big pumpkin','pumpkin','top','tower top'] },
+      lantern: { x: 208, y: 30,  w: 28,  h: 24,  name: 'the Great Pumpkin Lantern', syn: ['lantern','great lantern','pumpkin lantern','big pumpkin','pumpkin','top','tower top'] },
       tower:   { x: 120, y: 0,   w: 80,  h: 124, name: 'bell tower', syn: ['steeple','spire','clock tower','belltower'] },
       stairs:  { x: 20,  y: 124, w: 268, h: 58,  name: 'stairs', syn: ['steps','staircase','stair','big stairs','climb'] },
       bigdoor: { x: 202, y: 76,  w: 40,  h: 48,  name: 'big door', syn: ['door','doors','wooden door'] },
@@ -503,7 +503,8 @@ const TXT = {
     "Every year the Great Pumpkin Lantern on top of the school lights up, and THAT is when trick-or-treating starts. Everyone knows this.",
     "Tonight it hasn't lit. Dad looked out the window and said \"huh\". Then he said \"hm\". Then he got his shoes on.",
     "So. James. [costume] on. Bucket in hand. Dad beside you with a bundle of his signs under one arm, because he's running for school trustee and signs don't put up themselves.",
-    "Let's go find out what happened to that lantern."
+    "Let's go find out what happened to that lantern.",
+    "Arrow keys to walk about. Tap anything in the picture to look at it or use it. And if you ever get stuck, press ASK DAD. He loves being asked."
   ],
   unknown: [
     "Hm. Hmmmm. Not sure what you mean, bud.",
@@ -748,6 +749,18 @@ for (const k in SCREENS) { const im = new Image(); im.src = SCREENS[k].bg; im.on
 { const im = new Image(); im.src = 'assets/bg/school_lit.png'; im.onload = () => { bgImgs.school_lit = im; }; im.onerror = () => {}; }
 
 let debug = false, tick = 0, walkTarget = null, keys = {}, msgQueue = [], msgOpen = null, verbCoin = null, bucketOpen = false, selectedItem = null, finaleState = null;
+
+// Ticks of nothing happening before Dad offers a hint unasked. 15fps, so
+// this is about twenty-five seconds. A six year old does not know that the
+// button in the corner is the hint system, and a stuck child does not read
+// the UI - he asks the adult standing next to him, which is exactly what Dad
+// is for. Reuses askDad, so a second unprompted nudge escalates a tier the
+// same way asking twice does, and a puzzle with nothing left to solve falls
+// through to Dad's idle chatter instead.
+const IDLE_NUDGE = 375;
+let idleTicks = 0;
+function stirred() { idleTicks = 0; }
+
 let dadX = 20, dadY = 165, dadFacing = 1, dadStep = 0;
 let awarded = {};
 
@@ -784,8 +797,10 @@ function clampWalk(x, y) { const w = cur().walk; return [Math.max(6, Math.min(31
 function update() {
   tick++;
   if (S.flags.finalePending && !msgOpen && !msgQueue.length && !finaleState) { S.flags.finalePending = false; S.done = true; startFinale(); }
-  if (msgOpen || bucketOpen || verbCoin || finaleState) return;
+  if (msgOpen || bucketOpen || verbCoin || finaleState) { idleTicks = 0; return; }
+  if (++idleTicks > IDLE_NUDGE) { idleTicks = 0; askDad(); return; }
   let dx = 0, dy = 0;
+  if (keys.ArrowLeft || keys.ArrowRight || keys.ArrowUp || keys.ArrowDown) idleTicks = 0;
   if (keys.ArrowLeft) dx -= STEP; if (keys.ArrowRight) dx += STEP; if (keys.ArrowUp) dy -= 1; if (keys.ArrowDown) dy += 1;
   if (dx || dy) walkTarget = null;
   if (walkTarget) {
@@ -1177,7 +1192,7 @@ function askDad() {
 
 // ---------------------------------------------------------------- INPUT
 const cmd = document.getElementById('cmd');
-function run(line) { if (!line.trim()) return; cmd.value = ''; echo(line); parse(line); }
+function run(line) { if (!line.trim()) return; stirred(); cmd.value = ''; echo(line); parse(line); }
 function echo(line) { cmd.placeholder = '> ' + line; }
 cmd.addEventListener('keydown', e => { if (e.key === 'Enter') { run(cmd.value); e.preventDefault(); } if (e.key === 'Escape') cmd.blur(); e.stopPropagation(); });
 document.getElementById('askdad').onclick = () => { if (msgOpen) { nextMsg(); return; } echo('ask dad'); askDad(); };
@@ -1194,22 +1209,79 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => { if (e.key.startsWith('Arrow')) keys[e.key] = false; });
 document.querySelectorAll('#touchpad button').forEach(b => { const k = b.dataset.k; const on = e => { e.preventDefault(); keys[k] = true; }; const off = e => { e.preventDefault(); keys[k] = false; }; b.addEventListener('touchstart', on); b.addEventListener('touchend', off); b.addEventListener('mousedown', on); b.addEventListener('mouseup', off); b.addEventListener('mouseleave', off); });
-if ('ontouchstart' in window) document.body.classList.add('touch');
+// The pad is the only way to walk on a touch device now that tapping the
+// ground does nothing, so show it for a coarse pointer too - a tablet or a
+// phone that does not report ontouchstart would otherwise have no way to
+// move at all.
+if ('ontouchstart' in window || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)) document.body.classList.add('touch');
 
 function canvasPoint(e) { const r = cv.getBoundingClientRect(); const t = e.touches ? e.touches[0] : e; return { x: Math.floor((t.clientX - r.left) / r.width * 320), y: Math.floor((t.clientY - r.top) / r.height * 200) }; }
-function hitHotspot(p) { const H = cur().hotspots; let best = null, bestArea = 1e9; for (const id in H) { const h = H[id]; if (p.x >= h.x && p.x <= h.x + h.w && p.y >= h.y && p.y <= h.y + h.h) { const a = h.w * h.h; if (a < bestArea) { best = id; bestArea = a; } } } return best; }
+// How a verb reads when the game types the command for you. It was the bare
+// verb and the name joined by a space, which produced "talk the neighbours'
+// house" and "look the candle" - the game narrating itself in broken English
+// to a child who is learning to read it.
+const PREP = { look: 'look at', take: 'take', use: 'use', talk: 'talk to' };
+
+// What the game types when a hotspot is tapped. Falls back to PREP + name.
+// A hotspot can override a verb where the natural phrase is not the generic
+// one: you do not talk to a house, you knock on its door.
+function phrase(verb, id) {
+  const h = hs(id); if (!h) return verb;
+  if (h.as && h.as[verb]) return h.as[verb];
+  const n = h.name;
+  // No article in front of one that is already there, a possessive, or a
+  // person's name. Dumping every phrase in the game is what caught "the our
+  // house" and "the our lawn"; spot-checking two of them would not have.
+  const has = /^(the |a |an |our |your |my |his |her |their )/i.test(n) || /^[A-Z]/.test(n);
+  return PREP[verb] + ' ' + (has ? n : 'the ' + n);
+}
+
+// Minimum tap target, in game pixels. The candle is 11 by 13 in the art,
+// which is about 13 CSS pixels on a phone - nothing like a tap target, and
+// the player is six. The hit test grows anything smaller to MIN_TAP, centred
+// on the real rectangle. The rectangle stays honest, so sprite positions and
+// the H overlay still say where the thing actually is, and the smallest-area
+// rule still uses the real area - so a padded candle still beats the porch
+// it is sitting on.
+const MIN_TAP = 20;
+
+// A hotspot with `when` is not tappable until that flag is set. The glasses
+// are the reason: their rectangle sits under the cat's and is smaller, so
+// smallest-area-wins handed you the glasses every time you tapped the cat -
+// which gives away the one puzzle on the screen before you have solved it.
+// The sprite was already gated on the same flag; the hit test was not.
+function live(h, id) {
+  if (h.when && !S.flags[h.when]) return false;   // not revealed yet
+  if (h.item && has(id)) return false;            // already in the bucket
+  return true;
+}
+
+function hitHotspot(p) { const H = cur().hotspots; let best = null, bestArea = 1e9; for (const id in H) {
+    const h = H[id];
+    if (!live(h, id)) continue;
+    const px = Math.max(0, (MIN_TAP - h.w) / 2), py = Math.max(0, (MIN_TAP - h.h) / 2);
+    if (p.x >= h.x - px && p.x <= h.x + h.w + px && p.y >= h.y - py && p.y <= h.y + h.h + py) {
+      const a = h.w * h.h; if (a < bestArea) { best = id; bestArea = a; }
+    }
+  } return best; }
 function onTap(e) {
-  e.preventDefault(); const p = canvasPoint(e);
+  e.preventDefault(); stirred(); const p = canvasPoint(e);
   if (finaleState) { if (finaleState.stage === 2) { S = START(); awarded = {}; finaleState = null; save(); beginIntro(); } else if (msgOpen) nextMsg(); return; }
   if (msgOpen) { nextMsg(); return; }
   if (p.y < 10 && p.x > 270) { bucketOpen = !bucketOpen; return; }
-  if (bucketOpen) { const r = bucketRects.find(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h); if (r) { selectedItem = selectedItem === r.it ? null : r.it; if (selectedItem) { bucketOpen = false; echo('use ' + (r.it === 'dad' ? 'dad' : ITEMS[r.it].name) + ' on...'); } } else bucketOpen = false; return; }
-  if (verbCoin) { const r = verbCoin.rects.find(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h); const id = verbCoin.id; verbCoin = null; if (r) { echo(r.it.toLowerCase() + ' ' + hs(id).name); doVerb(r.it.toLowerCase(), id); } return; }
+  if (bucketOpen) { const r = bucketRects.find(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h); if (r) { selectedItem = selectedItem === r.it ? null : r.it; if (selectedItem) { bucketOpen = false; echo('use ' + (r.it === 'dad' ? 'Dad' : ITEMS[r.it].name) + ' on what?'); } } else bucketOpen = false; return; }
+  if (verbCoin) { const r = verbCoin.rects.find(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h); const id = verbCoin.id; verbCoin = null; if (r) { const v = r.it.toLowerCase(); echo(phrase(v, id)); doVerb(v, id); } return; }
   if (debug) console.log('tap', p);
   const id = hitHotspot(p);
-  if (selectedItem) { if (id) { echo('use ' + (selectedItem === 'dad' ? 'dad' : ITEMS[selectedItem].name) + ' on ' + hs(id).name); walkToThen(id, () => useOn(selectedItem, id)); } else selectedItem = null; return; }
+  if (selectedItem) { if (id) { echo('use ' + (selectedItem === 'dad' ? 'Dad' : ITEMS[selectedItem].name) + ' on ' + hs(id).name); walkToThen(id, () => useOn(selectedItem, id)); } else selectedItem = null; return; }
   if (id && !['street', 'plaza'].includes(id)) { verbCoin = { x: p.x, y: p.y, id }; return; }
-  const [x, y] = clampWalk(p.x, p.y); walkTarget = { x, y };
+  // Tapping bare ground used to send James walking there. The campaign asked
+  // for the arrows to be how you walk, and they are right: click-to-walk and
+  // tap-to-interact on the same surface means every missed tap on a small
+  // thing marches him across the screen instead, which is worse than nothing
+  // happening. Arrow keys on a keyboard, the on-screen pad on a touch
+  // device, and the game still walks him itself for any command that needs
+  // him somewhere - that is walkToThen and it is untouched.
 }
 cv.addEventListener('mousedown', onTap); cv.addEventListener('touchstart', onTap, { passive: false });
 
