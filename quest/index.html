@@ -640,6 +640,10 @@ const TXT = {
     talkCat: ["You pet [cat]. [cat] considers this. Then [cat] rolls over with a thump and purrs like a little motor.",
               "Under where [cat] was sitting: a pair of round glasses."],
     talkCatAgain: "You pet [cat] again. [cat] permits it.",
+    beCat: ["You scratch [cat] under the chin. [cat] looks at you for a long, long moment.",
+            "And then - this is going to be difficult to explain to Dad - you are [cat].",
+            "Arrow keys. Go on. Four legs, very low to the ground, and everything smells ENORMOUS. Press ESCAPE, or tap, when you want to be James again."],
+    catBack: "You are James again. [cat] is back by the table, washing one paw, pretending absolutely none of that happened.",
     takeGlasses: "You take the glasses. [cat] watches, pretending not to.",
     jar: "A jar with a small bright flame in it. It's warm and it moves like it's thinking. The Great Pumpkin Lantern's flame.",
     planterNoAsk: "Dad: \"Ask Gus first, bud. His planter.\"",
@@ -698,6 +702,7 @@ const TXT = {
     `Score: ${score} of ${MAX_SCORE}`,
     `Signs placed: ${signs} of 3`,
     signs === 3 ? "A great, great many thanks to you." : "",
+    S.got.catplay ? "You were also, briefly, a cat." : "",
     "",
     "Written with love by Ashley and Dad",
     "Made in Guelph, the Royal City",
@@ -757,6 +762,13 @@ let debug = false, tick = 0, walkTarget = null, keys = {}, msgQueue = [], msgOpe
 // is for. Reuses askDad, so a second unprompted nudge escalates a tier the
 // same way asking twice does, and a puzzle with nothing left to solve falls
 // through to Dad's idle chatter instead.
+// Being the cat. A hidden bonus, and deliberately inert: it unlocks only
+// once the glasses are out from under her, so it can never interfere with
+// the one puzzle she is part of, and nothing you do as the cat changes the
+// world. Exits are blocked while it runs, so there is no way to end up on
+// another screen as a cat with no way back.
+let catPlay = null;
+
 const IDLE_NUDGE = 375;
 let idleTicks = 0;
 function stirred() { idleTicks = 0; }
@@ -764,11 +776,13 @@ function stirred() { idleTicks = 0; }
 let dadX = 20, dadY = 165, dadFacing = 1, dadStep = 0;
 let awarded = {};
 
-// Twelve deeds at five points: nine award() calls plus the three signs.
+// Thirteen deeds at five points: ten award() calls plus the three signs.
+// One of the ten is the hidden one, so finishing the story leaves you on 60
+// of 65 and something still to find, the way the old games did it.
 // This read "of 50" in three places and a child who finished the game was
 // shown 60 of 50, which looks like a bug to the one person who must not
 // think the game is broken.
-const MAX_SCORE = 60;
+const MAX_SCORE = 65;
 function award(key, pts) { if (awarded[key]) return; awarded[key] = true; S.score += pts; S.got[key] = true; flash = { t: 30, txt: '+' + pts }; save(); }
 let flash = null;
 
@@ -798,6 +812,20 @@ function update() {
   tick++;
   if (S.flags.finalePending && !msgOpen && !msgQueue.length && !finaleState) { S.flags.finalePending = false; S.done = true; startFinale(); }
   if (msgOpen || bucketOpen || verbCoin || finaleState) { idleTicks = 0; return; }
+  if (catPlay) {
+    idleTicks = 0;
+    let cx = 0, cy = 0;
+    if (keys.ArrowLeft) cx -= STEP; if (keys.ArrowRight) cx += STEP;
+    if (keys.ArrowUp) cy -= 1; if (keys.ArrowDown) cy += 1;
+    if (cx || cy) {
+      if (cx) catPlay.facing = cx > 0 ? 1 : -1;
+      const w = cur().walk;
+      catPlay.x = Math.max(6, Math.min(314, catPlay.x + cx));
+      catPlay.y = Math.max(w.y0, Math.min(w.y1, catPlay.y + cy));
+      catPlay.step++;
+    }
+    return;   // James stays where he is, Dad stays where he is, no exits
+  }
   if (++idleTicks > IDLE_NUDGE) { idleTicks = 0; askDad(); return; }
   let dx = 0, dy = 0;
   if (keys.ArrowLeft || keys.ArrowRight || keys.ArrowUp || keys.ArrowDown) idleTicks = 0;
@@ -899,7 +927,8 @@ function render() {
     const sp = H.spider; draws.push({ y: 300, f: () => drawSprite(SPR.spider, 0, S.flags.spiderHi ? sp.sx + 4 : sp.sx, S.flags.spiderHi ? sp.sy - 10 : sp.sy) });
     draws.push({ y: H.gus.sy, f: () => drawSprite(SPR.gus, 0, H.gus.sx, H.gus.sy) });
     if (S.flags.gusGlasses) draws.push({ y: 301, f: () => drawSprite(SPR.glasses, 0, H.gus.sx + 1, H.gus.sy - 28) });
-    if (S.flags.catMoved) draws.push({ y: H.cat.sy, f: () => drawSprite(SPR.cat, 0, H.cat.sx + 8, H.cat.sy, true) });
+    if (catPlay) draws.push({ y: catPlay.y, f: () => drawSprite(SPR.cat, catPlay.step % 2 ? 1 : 0, catPlay.x, catPlay.y, catPlay.facing < 0) });
+    else if (S.flags.catMoved) draws.push({ y: H.cat.sy, f: () => drawSprite(SPR.cat, 0, H.cat.sx + 8, H.cat.sy, true) });
     else draws.push({ y: H.cat.sy, f: () => drawSprite(SPR.cat, 0, H.cat.sx, H.cat.sy) });
     if (S.flags.catMoved && !has('glasses') && !S.flags.gusGlasses) draws.push({ y: H.glasses.sy, f: () => drawSprite(SPR.glasses, 0, H.glasses.sx - 8, H.glasses.sy) });
     if (S.placed.C) draws.push({ y: 147, f: () => drawSprite(SPR.sign, 0, 52, 152) });
@@ -1130,7 +1159,7 @@ function talkTo(id) {
   }
   if (S.screen === 'bean') {
     if (id === 'spider') { if (f.spiderHi) return say(B.talkSpiderAgain); f.spiderHi = true; award('spider', 5); return say(B.talkSpider); }
-    if (id === 'cat') { if (f.catMoved) return say(B.talkCatAgain); f.catMoved = true; award('cat', 5); return say(B.talkCat); }
+    if (id === 'cat') { if (!f.catMoved) { f.catMoved = true; award('cat', 5); return say(B.talkCat); } if (has('glasses') || f.gusGlasses) return beCat(); return say(B.talkCatAgain); }
     if (id === 'gus') { if (!f.spiderHi) return say(B.doorSpider); f.inside = true; if (f.gusGlasses) return say(f.askedC ? B.talkGusAfter : (f.askedC = true, [B.talkGusAfter, B.talkGusSign])); if (f.talkedGus) return say(B.talkGusBlindAgain); f.talkedGus = true; return say(B.talkGusBlind); }
     if (id === 'door') return say(f.spiderHi ? B.doorBlocked : B.doorSpider);
   }
@@ -1180,6 +1209,14 @@ function placeSign(id) {
   if (S.screen === 'school') { if (id === 'stairs' || id === 'school' || id === 'bigdoor') return say(C.stepsSign); return say(C.plazaSign); }
   return say("Where, bud? Try PLACE SIGN ON LAWN.");
 }
+function beCat() {
+  const h = hs('cat');
+  catPlay = { x: h.sx + 8, y: Math.max(cur().walk.y0, h.sy), facing: -1, step: 0 };
+  award('catplay', 5);
+  say(TXT.bean.beCat);
+}
+function endCat() { if (!catPlay) return false; catPlay = null; say(TXT.bean.catBack); return true; }
+
 function askDad() {
   const f = S.flags, H = TXT.dadHints; let key = null;
   if (S.screen === 'street') { if (!f.pumpkinLit) key = 'pumpkinDark'; else if (!f.candyGot) key = 'knock'; else if (!S.placed.A) key = 'signA'; }
@@ -1201,6 +1238,7 @@ window.addEventListener('keydown', e => {
   if (e.target === cmd) return;
   if (finaleState && finaleState.stage === 2 && e.key === 'Enter') { S = START(); awarded = {}; finaleState = null; save(); beginIntro(); return; }
   if (msgOpen && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) { nextMsg(); e.preventDefault(); return; }
+  if (catPlay && (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ')) { endCat(); e.preventDefault(); return; }
   if (e.key === 'h' || e.key === 'H') { debug = !debug; return; }
   if (e.key === 'F5') { e.preventDefault(); save(); say('Saved.'); return; }
   if (e.key === 'F7') { e.preventDefault(); const l = load(); if (l) { S = l; say('Restored.'); } return; }
@@ -1268,6 +1306,7 @@ function onTap(e) {
   e.preventDefault(); stirred(); const p = canvasPoint(e);
   if (finaleState) { if (finaleState.stage === 2) { S = START(); awarded = {}; finaleState = null; save(); beginIntro(); } else if (msgOpen) nextMsg(); return; }
   if (msgOpen) { nextMsg(); return; }
+  if (endCat()) return;
   if (p.y < 10 && p.x > 270) { bucketOpen = !bucketOpen; return; }
   if (bucketOpen) { const r = bucketRects.find(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h); if (r) { selectedItem = selectedItem === r.it ? null : r.it; if (selectedItem) { bucketOpen = false; echo('use ' + (r.it === 'dad' ? 'Dad' : ITEMS[r.it].name) + ' on what?'); } } else bucketOpen = false; return; }
   if (verbCoin) { const r = verbCoin.rects.find(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h); const id = verbCoin.id; verbCoin = null; if (r) { const v = r.it.toLowerCase(); echo(phrase(v, id)); doVerb(v, id); } return; }
