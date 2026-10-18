@@ -546,7 +546,7 @@ const TXT = {
 
   // DAD: idle lines per screen (when nothing's unsolved), and hint tiers per puzzle.
   dadIdle: {
-    street: ["\"Nice night for it, eh?\"", "\"Look at that drift of leaves by the kerb. Proper pile, that.\"", "\"Think the lantern's this way. Let's go right.\""],
+    street: ["\"Nice night for it, eh?\"", "\"Look at that drift of leaves by the curb. Proper pile, that.\"", "\"Think the lantern's this way. Let's go right.\""],
     bean:   ["\"The Bean. Beanie beanie beanie.\"", "\"Gus makes a good coffee. Terrible foam, good coffee.\"", "\"The school is just up the way. When you're ready.\""],
     market: ["\"Love this market. Could eat a whole squash.\"", "\"The school is just up the way, kiddo.\"", "\"Say hello to the fella in the hat.\""],
     school: ["\"Big school. Big stairs. Big night.\"", "\"You've done so well, James. Honestly.\"", "\"Up we go, whenever you're ready.\""],
@@ -605,7 +605,7 @@ const TXT = {
       pumpkinLit: "The pumpkin is lit! Grinning like anything. Warm orange all over the porch.",
       wcat: "An upstairs window with the lamp on behind it, and a very large ginger cat sitting in it like an ornament. It is watching you. It has been watching you for a while.",
       wcatWaved: "The ginger cat in the window, one paw still half up, having decided that was enough for one evening.",
-      leaves: "A long drift of leaves banked up along the kerb. The good kind. Crunchy all the way down.",
+      leaves: "A long drift of leaves banked up along the curb. The good kind. Crunchy all the way down.",
       leavesSearched: "The leaves you have already been through, with a small red mitten sitting on top of them where you left it.",
       leavesEmpty: "The leaves, thoroughly kicked. Nothing else in there but more leaves.",
       mitten: "A small red woollen mitten. Not yours. Somebody out here has one cold hand.",
@@ -1090,10 +1090,10 @@ const SURVEY = {
       : "There is a lamp on in an upstairs window over there, and something large and ginger sitting in it, watching the pavement.");
     bits.push("A big maple on the corner is letting go of its last leaves all over the road.");
     bits.push(!f.mittenSeen
-      ? "They have banked up into a long drift of leaves along the kerb, deep enough to go through properly."
+      ? "They have banked up into a long drift of leaves along the curb, deep enough to go through properly."
       : (has('mitten') || f.mittenBack)
-        ? "The drift of leaves along the kerb has been thoroughly dealt with."
-        : "The drift of leaves along the kerb has been kicked apart, and the small red mitten that was in it is lying on top.");
+        ? "The drift of leaves along the curb has been thoroughly dealt with."
+        : "The drift of leaves along the curb has been kicked apart, and the small red mitten that was in it is lying on top.");
     return pack(bits);
   },
   bean: f => {
@@ -1330,12 +1330,23 @@ const PANELS = {
       '  JUMP   SING   DANCE   SPIN   SHOUT   BURP',
       '  HUG DAD   SMELL   LISTEN   HIDE   FLY   WAVE',
       '',
-      'Try using the wrong thing on the wrong thing.',
-      'Quite a lot of those have an answer written for',
-      'them, and finding one is the joke.',
+      'Most of those can be aimed at something, and a',
+      'few of them matter: SHOUT AT THE SQUIRREL does',
+      'something SHOUT on its own does not, and so does',
+      'WAVE AT THE CAT.',
+      '',
+      'USE CANDY on its own works when there is only',
+      'one sensible thing to use it on. Otherwise the',
+      'game will tell you what is here.',
+      '',
+      'Try the wrong thing on the wrong thing. A lot of',
+      'those have an answer written for them, and',
+      'finding one is the joke.',
       '',
       'There are nine secrets nobody tells you about.',
-      'Your score goes up when you find one.',
+      'Your score goes up when you find one. Type SCORE',
+      'to see how you are doing, or GOAL if you have',
+      'forgotten what you came out for.',
       '',
       'SAVE and RESTORE work. So does RESTART.',
     ],
@@ -1518,6 +1529,34 @@ function scenery(noun) {
 // Only ever fires when the player is already carrying the answer, so it
 // cannot solve anything for them early.
 const PAIRS = { pumpkin: 'candle', lantern: 'jar', stairs: 'dad', tower: 'dad', gus: 'glasses' };
+// The same idea the other way round: the one obvious thing to use each
+// item on, per screen, so USE CANDY on the market screen does what the
+// player plainly meant rather than asking "use the candy on what". Only
+// where there is exactly one sensible answer - anywhere else the player
+// still has to say.
+const USEHERE = {
+  candle:  { street: 'pumpkin' },
+  jar:     { school: 'lantern' },
+  glasses: { bean: 'gus' },
+  mitten:  { bean: 'tot' },
+  candy:   { market: 'squirrel' },
+  spider:  { street: 'dad', bean: 'dad', market: 'dad', school: 'dad' },
+  dad:     { school: 'stairs' },
+};
+// What is here, for when there is no single obvious answer. Named in the
+// order they are written, which runs roughly front to back on every screen.
+function hereList() {
+  const H = cur().hotspots;
+  const rank = id => ALIVE.includes(id) ? 0 : H[id].item ? 1 : 2;
+  const names = Object.keys(H).filter(id => live(H[id], id) && !['street', 'plaza', 'grass'].includes(id))
+    .sort((a, c) => rank(a) - rank(c))
+    // "There is spider, Gus, cat" - the names are written for a sentence
+    // that already had an article in front. A capital is a proper noun and
+    // keeps none.
+    .map(id => { const n = H[id].name; return (/^(the |a )/.test(n) || /^[A-Z]/.test(n)) ? n : 'the ' + n; }).slice(0, 4);
+  if (!names.length) return '';
+  return 'There is ' + names.slice(0, -1).join(', ') + (names.length > 1 ? ' and ' : '') + names[names.length - 1] + ' here.';
+}
 
 // Things a child types to find out whether anybody thought of it. Somebody
 // did. None of these change the world; three of them are worth points,
@@ -1707,12 +1746,22 @@ function parse(raw) {
     const pair = twoThings(rest);
     if (pair) return cur().hotspots[pair[1]] ? walkToThen(pair[1], () => useOn(pair[0], pair[1])) : useOn(pair[0], pair[1]);
     const h = findHotspot(rest); const it = findItem(rest);
-    if (h) {
+    if (h && !(it && (it === 'dad' || has(it)))) {
       const want = PAIRS[h];
       if (want && (want === 'dad' || has(want))) return walkToThen(h, () => useOn(want, h));
       return doVerb('use', h);
     }
-    if (it) return say(`Use ${ITEMS[it].name} on what?`); return say(pick(TXT.unknown));
+    if (it) {
+      const spot = (USEHERE[it] || {})[S.screen];
+      if (spot === 'dad') return useOn(it, 'dad');
+      if (spot && cur().hotspots[spot] && live(cur().hotspots[spot], spot)) return walkToThen(spot, () => useOn(it, spot));
+      // ITEMS has no 'dad' entry, and findItem returns 'dad' for anything
+      // with "dad" in it, so this read .name off undefined and took the
+      // whole turn down.
+      const label = it === 'dad' ? 'Dad' : ITEMS[it].name;
+      return say(`Use ${label} on what? ${hereList()}`.trim());
+    }
+    return say(pick(TXT.unknown));
   }
   if (verb === 'touch') {
     const h = findHotspot(rest) || findItem(rest);
