@@ -1006,6 +1006,18 @@ function goScreen(name, side) {
 //
 // The rule when adding to these: every hotspot on the screen gets a mention
 // in the prose. If it is not in here, nobody will ever think to try it.
+// The narration box holds about six comfortable lines, so sentences are
+// packed up to roughly that and then a new box starts. Packing rather than
+// one-box-per-sentence, because "You can walk left or right" on its own is
+// a keypress for nothing.
+function pack(bits, max) {
+  const lim = max || 230, out = [];
+  for (const b of bits) {
+    if (out.length && (out[out.length - 1].length + 1 + b.length) <= lim) out[out.length - 1] += ' ' + b;
+    else out.push(b);
+  }
+  return out;
+}
 const SURVEY = {
   street: f => {
     const bits = ["Our street, and every porch on it has a pumpkin going except one."];
@@ -1027,7 +1039,7 @@ const SURVEY = {
       : (has('mitten') || f.mittenBack)
         ? "The drift of leaves along the kerb has been thoroughly dealt with."
         : "The drift of leaves along the kerb has been kicked apart, and the small red mitten that was in it is lying on top.");
-    return bits.join(' ');
+    return pack(bits);
   },
   bean: f => {
     const bits = ["The Bean, warm and yellow in the window, and somebody inside is wearing a bedsheet."];
@@ -1047,7 +1059,7 @@ const SURVEY = {
     bits.push(f.mittenBack
       ? "Further along the pavement, the kid in the dinosaur costume is going through a pillowcase with two mittened hands."
       : "Further along the pavement there is another kid in a dinosaur costume, holding a pillowcase, with one hand up a sleeve.");
-    return bits.join(' ');
+    return pack(bits);
   },
   market: f => {
     const bits = ["The farmers market, all under one long stripy awning. Crates of apples and squash out front, a wall of hay bales, and a heap of pumpkins with one enormous prize-winner on top."];
@@ -1061,7 +1073,7 @@ const SURVEY = {
     else if (f.squirrelFed) bits.push("The hay bales have no squirrel on them any more, because the squirrel has gone up a tree with your candy.");
     else bits.push("The hay bales have no squirrel on them any more, because of the shouting.");
     bits.push("There is a good flat strip of grass along the road, and a hydro pole on the left with wires going off in four directions.");
-    return bits.join(' ');
+    return pack(bits);
   },
   school: f => {
     const bits = ["The school on the hill. Grey stone, a clock tower in the middle of it, and a wide flight of stone stairs going up to two big wooden doors."];
@@ -1069,7 +1081,7 @@ const SURVEY = {
       ? "The Great Pumpkin Lantern is blazing away at the top of the tower and the whole yard has gone orange."
       : "The Great Pumpkin Lantern sits at the very top of the tower, dark and waiting.");
     bits.push("There is a little stone post near the bottom of the steps with a bronze plaque on it, and leaves skittering about the yard.");
-    return bits.join(' ');
+    return pack(bits);
   },
 };
 
@@ -1426,7 +1438,8 @@ function parse(raw) {
     if (!rest) {
       if (verb !== 'look') return say(`${verb.charAt(0).toUpperCase() + verb.slice(1)} what?`);
       const sur = SURVEY[S.screen], fresh = notLookedAt(), ways = exitsHere();
-      return say([sur ? sur(S.flags) : lookAround(), fresh, ways].filter(Boolean));
+      const scene = sur ? sur(S.flags) : lookAround();
+      return say([...(Array.isArray(scene) ? scene : [scene]), fresh, ways].filter(Boolean));
     }
     return say(pick(TXT.nothingHere));
   }
