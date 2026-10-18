@@ -546,7 +546,7 @@ const TXT = {
 
   // DAD: idle lines per screen (when nothing's unsolved), and hint tiers per puzzle.
   dadIdle: {
-    street: ["\"Nice night for it, eh?\"", "\"Look at the leaves, kiddo. Poppin' off.\"", "\"Think the lantern's this way. Let's go right.\""],
+    street: ["\"Nice night for it, eh?\"", "\"Look at that drift of leaves by the kerb. Proper pile, that.\"", "\"Think the lantern's this way. Let's go right.\""],
     bean:   ["\"The Bean. Beanie beanie beanie.\"", "\"Gus makes a good coffee. Terrible foam, good coffee.\"", "\"The school is just up the way. When you're ready.\""],
     market: ["\"Love this market. Could eat a whole squash.\"", "\"The school is just up the way, kiddo.\"", "\"Say hello to the fella in the hat.\""],
     school: ["\"Big school. Big stairs. Big night.\"", "\"You've done so well, James. Honestly.\"", "\"Up we go, whenever you're ready.\""],
@@ -574,7 +574,7 @@ const TXT = {
     signB:       ["\"That planter would be a grand spot for a sign. Have to ask Gus first though.\"",
                   "\"TALK TO Gus about the sign, then PLACE SIGN on the planter.\""],
     // market
-    scarecrow:   ["\"There is somebody standing by the stalls. Go on, say hello.\"",
+    scarecrow:   ["\"There is somebody standing out front in a hat. Go on, say hello.\"",
                   "\"He looks like he wants to tell you something. Scarecrows usually do.\"",
                   "\"TALK TO THE SCARECROW, kiddo.\""],
     signD:       ["\"That grass out front would take a sign nicely. He did say so.\"",
@@ -821,8 +821,13 @@ const TXT = {
 
   finale: [
     "From up here you can see all of it. Our street. The Bean, with Gus waving a tea towel out the door. Every pumpkin on every porch, lit.",
-    "And three small signs, exactly where you put them.",
-    "Dad: \"Right. Trick or treating. Immediately. [funny thing James says].\"",
+    // Counted, not asserted: there are four places to put a sign and the
+    // line said three whatever you had actually done.
+    () => { const n = 4 - S.signs; return n === 0 ? "And not one sign up anywhere, which Dad has decided not to mention."
+      : n === 1 ? "And one small sign, exactly where you put it."
+      : `And ${['', 'one', 'two', 'three', 'four'][n]} small signs, exactly where you put them.`; },
+    // No full stop after this one: [funny thing James says] brings its own.
+    "Dad: \"Right. Trick or treating. Immediately. [funny thing James says]\"",
   ],
   credits: (score, signs) => [
     "JAMES'S QUEST",
@@ -841,6 +846,10 @@ const TXT = {
     S.got.brave ? "Dad is no longer afraid of spiders. Mostly." : "",
     S.got.mitten ? "Somewhere out there a dinosaur has two warm hands." : "",
     S.got.wcat ? "A cat waved at you. That happened." : "",
+    "",
+    score < MAX_SCORE
+      ? `There are ${MAX_SCORE - score} points still out there, in things nobody told you about.`
+      : "Every single point. Nobody has ever done that before.",
     "",
     "Written with love by Ashley and Dad",
     "Made in Guelph, the Royal City",
@@ -943,7 +952,7 @@ const MAX_SCORE = 115;
 function award(key, pts) { if (awarded[key]) return; awarded[key] = true; S.score += pts; S.got[key] = true; flash = { t: 30, txt: '+' + pts }; save(); }
 let flash = null;
 
-function say(lines) { if (!Array.isArray(lines)) lines = [lines]; for (const l of lines) msgQueue.push(fill(l)); if (!msgOpen) nextMsg(); }
+function say(lines) { if (!Array.isArray(lines)) lines = [lines]; for (const l of lines) msgQueue.push(fill(typeof l === 'function' ? l() : l)); if (!msgOpen) nextMsg(); }
 function nextMsg() { msgOpen = msgQueue.length ? msgQueue.shift() : null; }
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 function fill(s) { return renameText(s.replace(/\[cat\]/g, FILL.cat).replace(/\[costume\]/g, FILL.costume).replace(/\[funny thing James says\]/g, FILL.funny)); }
@@ -1570,6 +1579,14 @@ function parse(raw) {
   if (VERBS.sign.some(v => s.startsWith(v)) || (s.includes('sign') && /(place|put|plant)/.test(s))) { const rest = s.replace(/.*sign( on| in| at)?/, '').replace(FILLER, ' ').trim(); return placeSign(findHotspot(rest)); }
   if (/^(help|how do i play|how do you play|instructions|controls)$/.test(s)) { panel = 'help1'; return; }
   if (/^(options|option|settings)$/.test(s)) { panel = 'opts'; return; }
+  if (/^(goal|quest|mission|task|objective|why|what (are we|am i) doing|what('| i)s the (plan|point)|remind me)$/.test(s)) {
+    const f = S.flags;
+    return say(f.lit
+      ? "The Great Pumpkin Lantern is lit and Halloween is on. The rest of tonight is sweets."
+      : has('jar')
+        ? "You have the flame in a jar. It belongs in the Great Pumpkin Lantern, on top of the clock tower at the school, up the street to the right."
+        : "The Great Pumpkin Lantern on the school has not lit, and nothing starts until it does. Find out why, and find a flame. Dad has signs to put up on the way.");
+  }
   const rn = raw.match(/^\s*(?:re)?name\s+(me|myself|james|dad|cat|the cat)\s+(.+)$/i);
   if (rn) {
     S.names = S.names || {};   // a save made before Options existed has none
