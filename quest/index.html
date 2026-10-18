@@ -458,7 +458,7 @@ const SCREENS = {
     }
   },
   bean: {
-    bg: 'assets/bg/bean.png', placeholder: [1, 6, 8],
+    bg: 'assets/bg/bean.png', placeholder: [1, 6, 8], scale: 1.5,
     walk: { y0: 150, y1: 190 },
     start: { x: 26, y: 172 },
     exits: { left: 'street', right: 'market' },
@@ -995,9 +995,9 @@ function onEnter() {
 }
 
 // ---------------------------------------------------------------- DRAW
-function drawSprite(spr, frame, x, y, flip) { // x,y = bottom-centre
+function drawSprite(spr, frame, x, y, flip, scale) { // x,y = bottom-centre
   const nm = sprName(spr), im = nm && IMGSPR[nm];
-  if (im) return drawImgSprite(im, frame, x, y, flip);
+  if (im) return drawImgSprite(im, frame, x, y, flip, scale);
   const f = spr.frames[frame % spr.frames.length]; const w = spr.w, h = spr.h;
   const left = Math.round(x - w / 2), top = Math.round(y - h);
   for (let r = 0; r < h; r++) for (let c = 0; c < w; c++) {
@@ -1005,19 +1005,25 @@ function drawSprite(spr, frame, x, y, flip) { // x,y = bottom-centre
     ctx.fillStyle = EGA[p]; ctx.fillRect(left + c, top + r, 1, 1);
   }
 }
-function drawImgSprite(im, frame, x, y, flip) {
+// `scale` is the per-screen actor size. Sprite heights are global but the
+// backgrounds are not: the street recedes to a vanishing point so figures
+// are small, while the Bean is a shopfront with almost no depth, and the
+// same James looked like a doll outside it. One number per screen rather
+// than a second set of sprites.
+function drawImgSprite(im, frame, x, y, flip, scale) {
   // The file is PX times the logical size, so that a sprite keeps its detail
   // on a 960x600 canvas while the game goes on thinking in 320x200. Source
   // rectangles are therefore in file pixels and destinations in game units.
-  const w = im.width / PX, h = im.height / PX;
+  const k = scale || 1;
+  const w = im.width / PX * k, h = im.height / PX * k;
   const left = Math.round(x - w / 2), top = Math.round(y - h);
   const legs = Math.max(4, Math.round(h * 0.38)); // bottom part that shuffles
   const bob = frame ? 1 : 0, shift = frame === 1 ? 1 : frame === 2 ? -1 : 0;
   ctx.save();
   if (flip) { ctx.translate(left + w, 0); ctx.scale(-1, 1); ctx.translate(-left, 0); }
-  ctx.drawImage(im, 0, 0, w * PX, (h - legs) * PX, left, top - bob, w, h - legs);
-  ctx.drawImage(im, 0, (h - legs) * PX, w * PX, legs * PX, left + shift, top - bob + h - legs, w, legs);
-  if (frame) { ctx.drawImage(im, 0, (h - 2) * PX, w * PX, 2 * PX, left, top + h - 2 - bob, w, 2 + bob); }
+  ctx.drawImage(im, 0, 0, im.width, (h - legs) / k * PX, left, top - bob, w, h - legs);
+  ctx.drawImage(im, 0, (h - legs) / k * PX, im.width, legs / k * PX, left + shift, top - bob + h - legs, w, legs);
+  if (frame) { ctx.drawImage(im, 0, (h - 2) / k * PX, im.width, 2 / k * PX, left, top + h - 2 - bob, w, 2 + bob); }
   ctx.restore();
 }
 function drawPlaceholder(sc) {
@@ -1048,7 +1054,7 @@ function render() {
     // appearing at her door is the signpost. Guarded on the image rather
     // than given a hand-pixeled fallback: there is no SPR.patel, and an
     // absent neighbour is better than a crash.
-    if (S.flags.pumpkinLit && IMGSPR.patel) draws.push({ y: 151, f: () => drawImgSprite(IMGSPR.patel, 0, 240, 153, false) });
+    if (S.flags.pumpkinLit && IMGSPR.patel) draws.push({ y: 151, f: () => drawImgSprite(IMGSPR.patel, 0, 240, 153, false, sc.scale || 1) });
     if (S.placed.A) draws.push({ y: 176, f: () => drawSprite(SPR.sign, 0, 26, 170) });
     if (S.placed.B) draws.push({ y: 164, f: () => drawSprite(SPR.sign, 0, 250, 162) });
   }
@@ -1056,12 +1062,12 @@ function render() {
     // Guarded on the image, like Mrs. Patel: there is no hand-pixeled
     // SPR.scarecrow to fall back to, and drawSprite would read .frames off
     // undefined and take the whole render down with it.
-    if (IMGSPR.scarecrow) draws.push({ y: H.scarecrow.sy, f: () => drawImgSprite(IMGSPR.scarecrow, 0, H.scarecrow.sx, H.scarecrow.sy, false) });
+    if (IMGSPR.scarecrow) draws.push({ y: H.scarecrow.sy, f: () => drawImgSprite(IMGSPR.scarecrow, 0, H.scarecrow.sx, H.scarecrow.sy, false, sc.scale || 1) });
     if (S.placed.D) draws.push({ y: 176, f: () => drawSprite(SPR.sign, 0, 196, 176) });
   }
   if (S.screen === 'bean') {
     const sp = H.spider; draws.push({ y: 300, f: () => drawSprite(SPR.spider, 0, S.flags.spiderHi ? sp.sx + 4 : sp.sx, S.flags.spiderHi ? sp.sy - 10 : sp.sy) });
-    draws.push({ y: H.gus.sy, f: () => drawSprite(SPR.gus, 0, H.gus.sx, H.gus.sy) });
+    draws.push({ y: H.gus.sy, f: () => drawSprite(SPR.gus, 0, H.gus.sx, H.gus.sy, false, sc.scale || 1) });
     // No glasses drawn on Gus: his own render already wears a pair, up on
     // his head, so the overlay was a second pair on top of the first.
     if (catPlay) draws.push({ y: catPlay.y, f: () => drawSprite(SPR.cat, catPlay.step % 2 ? 1 : 0, catPlay.x, catPlay.y, catPlay.facing < 0) });
@@ -1077,11 +1083,12 @@ function render() {
     if (S.flags.lit && !bgImgs.school_lit) { ctx.fillStyle = EGA[14]; const L = H.lantern; ctx.fillRect(L.x + 4, L.y + 4, L.w - 8, L.h - 8); ctx.fillStyle = EGA[12]; ctx.fillRect(L.x + 2, L.y + 2, L.w - 4, 2); }
   }
   // actors
+  const K = sc.scale || 1;
   const jf = S.walking ? (Math.floor(tick / 6) % 2 ? 1 : 2) : 0;
-  draws.push({ y: S.y, f: () => drawSprite(SPR.james, jf, S.x, S.y, S.facing < 0) });
+  draws.push({ y: S.y, f: () => drawSprite(SPR.james, jf, S.x, S.y, S.facing < 0, K) });
   const dmoving = Math.abs((S.x - 22 * S.facing) - dadX) > 2;
   const df = dmoving ? (Math.floor(dadStep / 6) % 2 ? 1 : 2) : 0;
-  draws.push({ y: dadY, f: () => drawSprite(SPR.dad, df, dadX, dadY, dadFacing < 0) });
+  draws.push({ y: dadY, f: () => drawSprite(SPR.dad, df, dadX, dadY, dadFacing < 0, K) });
   draws.sort((a, b) => a.y - b.y).forEach(d => d.f());
 
   // status bar
