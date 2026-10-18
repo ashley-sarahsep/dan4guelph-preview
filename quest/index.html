@@ -41,6 +41,9 @@
       <div id="crtfx"></div>
       <div id="cmdrow">
         <input id="cmd" autofocus autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="type LOOK to see what is here, or ASK DAD if you are stuck">
+        <button class="btn" id="bucketbtn" type="button">Bucket</button>
+        <button class="btn" id="helpbtn" type="button">Help</button>
+        <button class="btn" id="optbtn" type="button">Options</button>
       </div>
     </div>
     <div id="powerlight"></div>
@@ -852,7 +855,7 @@ const TXT = {
 // ---------------------------------------------------------------- STATE
 const START = () => ({
   screen: 'street', x: 40, y: 165, facing: 1,
-  score: 0, got: {}, flags: { squirrelHere: true }, inv: ['bucket'], signs: 4, placed: {},
+  score: 0, got: {}, flags: { squirrelHere: true }, inv: ['bucket'], signs: 4, placed: {}, names: {},
   seenIntro: false, done: false,
 });
 let S = START();
@@ -895,6 +898,9 @@ for (const k in SCREENS) { const im = new Image(); im.src = SCREENS[k].bg; im.on
 { const im = new Image(); im.src = 'assets/bg/school_lit.png'; im.onload = () => { bgImgs.school_lit = im; }; im.onerror = () => {}; }
 
 let debug = false, tick = 0, walkTarget = null, keys = {}, msgQueue = [], msgOpen = null, bucketOpen = false, finaleState = null;
+// Which full-screen panel is up, if any: 'help1', 'help2' or 'opts'. One
+// variable rather than a flag each, so the dismiss paths stay one line.
+let panel = null;
 
 // Being the cat. A hidden bonus, and deliberately inert: it unlocks only
 // once the glasses are out from under her, so it can never interfere with
@@ -929,10 +935,33 @@ let flash = null;
 function say(lines) { if (!Array.isArray(lines)) lines = [lines]; for (const l of lines) msgQueue.push(fill(l)); if (!msgOpen) nextMsg(); }
 function nextMsg() { msgOpen = msgQueue.length ? msgQueue.shift() : null; }
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-function fill(s) { return s.replace(/\[cat\]/g, FILL.cat).replace(/\[costume\]/g, FILL.costume).replace(/\[funny thing James says\]/g, FILL.funny); }
+function fill(s) { return renameText(s.replace(/\[cat\]/g, FILL.cat).replace(/\[costume\]/g, FILL.costume).replace(/\[funny thing James says\]/g, FILL.funny)); }
 
 // Fill these in. They are the only placeholders.
 const FILL = { cat: 'Valanice', costume: 'Super Kid suit', funny: 'Super Kid, away!' };
+
+// Renaming, from the Options panel. The three names are written out in full
+// all over the copy and inside template literals that were baked at load, so
+// a chosen name is swapped in at display time rather than at authoring time:
+// one pass over the finished line catches both. DEFNAMES is therefore both
+// the default and the word being searched for - do not change a default here
+// without changing the copy that spells it.
+const DEFNAMES = { hero: 'James', dad: 'Dad', cat: 'Valanice' };
+function nm(k) { return (typeof S !== 'undefined' && S && S.names && S.names[k]) || DEFNAMES[k]; }
+function renameText(t) {
+  if (typeof S === 'undefined' || !S || !S.names) return t;
+  for (const k in DEFNAMES) {
+    const v = S.names[k], d = DEFNAMES[k];
+    if (!v || v === d) continue;
+    t = t.replace(new RegExp('\\b' + d + "(?='s\\b|\\b)", 'g'), v)
+         .replace(new RegExp('\\b' + d.toUpperCase() + "(?='S\\b|\\b)", 'g'), v.toUpperCase());
+  }
+  return t;
+}
+function cleanName(v) {
+  const t = (v || '').replace(/[^A-Za-z0-9' -]/g, '').trim().slice(0, 14);
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : '';
+}
 
 function cur() { return SCREENS[S.screen]; }
 function hs(id) { return cur().hotspots[id]; }
@@ -951,7 +980,7 @@ function clampWalk(x, y) { const w = cur().walk; return [Math.max(6, Math.min(31
 function update() {
   tick++;
   if (S.flags.finalePending && !msgOpen && !msgQueue.length && !finaleState) { S.flags.finalePending = false; S.done = true; startFinale(); }
-  if (msgOpen || bucketOpen || finaleState) return;
+  if (msgOpen || bucketOpen || panel || finaleState) return;
   if (catPlay) {
     let cx = 0, cy = 0;
     if (keys.ArrowLeft) cx -= STEP; if (keys.ArrowRight) cx += STEP;
@@ -982,9 +1011,15 @@ function update() {
     if (S.x >= 314 && ex.right) goScreen(ex.right, 'left');
     else if (S.x <= 6 && ex.left) goScreen(ex.left, 'right');
   } else S.walking = false;
-  // dad follows
+  // dad follows, a step behind - but never off the edge of the screen.
+  // Dad enters a screen just outside it and walks in, which is right when
+  // James walks on; stand still at the very edge, though, and his target
+  // was off-screen too, so Dad spoke his lines from nowhere. When there is
+  // no room behind James, Dad comes round to the other side of him.
   const gap = 22 * S.facing;
-  const dtx = S.x - gap, dty = S.y + 2;
+  let dtx = S.x - gap;
+  if (dtx < 14) dtx = S.x + 22; else if (dtx > 306) dtx = S.x - 22;
+  const dty = S.y + 2;
   const ddx = dtx - dadX, ddy = dty - dadY;
   if (Math.abs(ddx) > 2 || Math.abs(ddy) > 1) { dadX += Math.sign(ddx) * Math.min(2, Math.abs(ddx)); dadY += Math.sign(ddy); dadFacing = ddx !== 0 ? Math.sign(ddx) : dadFacing; dadStep++; }
 }
@@ -1206,12 +1241,13 @@ function render() {
   // status bar
   ctx.fillStyle = EGA[15]; ctx.fillRect(0, 0, 320, 10);
   text(`Score: ${S.score} of ${MAX_SCORE}`, 4, 1, 0);
-  text("James's Quest", 124, 1, 0);
+  text(renameText("James's Quest"), 124, 1, 0);
   if (flash && flash.t > 0) { text(flash.txt, 92, 1, 4); flash.t--; }
 
   if (debug) { ctx.fillStyle = 'rgba(0,255,0,.18)'; ctx.fillRect(0, sc.walk.y0, 320, sc.walk.y1 - sc.walk.y0); ctx.strokeStyle = '#f0f'; ctx.lineWidth = 1; for (const k in H) { const h = H[k]; ctx.strokeRect(h.x + .5, h.y + .5, h.w, h.h); text(k, h.x + 1, h.y + 1, 13); } }
 
   if (bucketOpen) drawBucket();
+  if (panel) drawPanel();
   if (msgOpen) drawMsg(msgOpen);
 }
 function box(x, y, w, h) { ctx.fillStyle = EGA[15]; ctx.fillRect(x, y, w, h); ctx.fillStyle = EGA[0]; ctx.fillRect(x, y, w, 1); ctx.fillRect(x, y + h - 1, w, 1); ctx.fillRect(x, y, 1, h); ctx.fillRect(x + w - 1, y, 1, h); ctx.fillRect(x + 2, y + 2, w - 4, 1); ctx.fillRect(x + 2, y + h - 3, w - 4, 1); ctx.fillRect(x + 2, y + 2, 1, h - 4); ctx.fillRect(x + w - 3, y + 2, 1, h - 4); }
@@ -1229,6 +1265,85 @@ function drawMsg(m) {
   box(x, y, w, h); lines.forEach((l, i) => text(l, x + PAD, y + 8 + i * 10, 0));
   if (Math.floor(tick / 15) % 2) text('▼', x + w - 14, y + h - 10, 8);
 }
+// ---------------------------------------------------------------- PANELS
+// Help and Options, reached from the two buttons on the bottom bar and from
+// typing HELP or OPTIONS. Drawn on the canvas rather than in HTML so they
+// look like the rest of the game, and dismissed the same way a message box
+// is: Enter, Escape or a click.
+const PANELS = {
+  help1: {
+    title: 'HOW TO PLAY  (1 of 2)',
+    lines: () => [
+      'You type what you want to do. Short is fine.',
+      '',
+      '  LOOK                 see where you are',
+      '  LOOK AT THE PUMPKIN  look at one thing',
+      '  TAKE THE CANDLE      put it in your bucket',
+      '  TALK TO GUS          say hello to somebody',
+      '  USE CANDLE ON PUMPKIN',
+      '  PLACE SIGN ON OUR LAWN',
+      '  BUCKET               see what you are carrying',
+      '',
+      'Hold the LEFT and RIGHT arrow keys to walk, and',
+      'walk off the side of the screen to go somewhere',
+      'new. Press Enter to get past a box of writing.',
+      '',
+      'Stuck? Type ASK DAD. He will give you a nudge,',
+      'and a bigger one if you ask him again.',
+    ],
+  },
+  help2: {
+    title: 'THINGS WORTH TRYING  (2 of 2)',
+    lines: () => [
+      'Nobody can die in this game and nothing can go',
+      'wrong, so try the silly thing. Some of them talk',
+      'back.',
+      '',
+      '  JUMP   SING   DANCE   SPIN   SHOUT   BURP',
+      '  HUG DAD   SMELL   LISTEN   HIDE   FLY   WAVE',
+      '',
+      'Try using the wrong thing on the wrong thing.',
+      'Quite a lot of those have an answer written for',
+      'them, and finding one is the joke.',
+      '',
+      'There are nine secrets nobody tells you about.',
+      'Your score goes up when you find one.',
+      '',
+      'SAVE and RESTORE work. So does RESTART.',
+    ],
+  },
+  opts: {
+    title: 'OPTIONS',
+    lines: () => [
+      'You can rename anybody. Type the command on the',
+      'line at the bottom, then press Enter.',
+      '',
+      nrow('NAME ME <new name>', nm('hero')),
+      nrow('NAME DAD <new name>', nm('dad')),
+      nrow('NAME CAT <new name>', nm('cat')),
+      '',
+      'So NAME CAT Mittens, and she is Mittens from then',
+      'on, everywhere. NAMES on its own puts all three',
+      'back to how they started.',
+      '',
+      'The CRT button at the top right of the page turns',
+      'the old monitor look on and off.',
+      '',
+      'The game saves itself as you go, on this computer',
+      'only. Type RESTART to start again from the top.',
+    ],
+  },
+};
+// Two columns: what to type, and what the name is at the moment. The panel
+// is 59 characters wide at this font, so 30 leaves room for both.
+function nrow(cmd, cur) { return '  ' + cmd.padEnd(30) + 'now: ' + cur; }
+function drawPanel() {
+  const P = PANELS[panel]; if (!P) return;
+  box(8, 14, 304, 176);
+  text(P.title, 18, 22, 4);
+  P.lines().forEach((l, i) => text(l, 18, 36 + i * 9, l.startsWith('  ') ? 1 : 0));
+  text(panel === 'help1' ? 'Enter for more' : 'Enter to close', 18, 178, 8);
+}
 function drawBucket() {
   // ICON_X is the centre of the icon column and LABEL_X where the text
   // starts. The gap has to clear the widest sprite: the glasses are 32 game
@@ -1240,17 +1355,33 @@ function drawBucket() {
   for (const it of items) { const spr = ITEMS[it].spr; if (spr) drawSprite(SPR[spr], 0, ICON_X, y + 10); text(ITEMS[it].name, LABEL_X, y + 1, 0); y += 16; }
   if (S.signs > 0) { drawSprite(SPR.sign, 0, ICON_X, y + 12); text(TXT.signsLeft(S.signs), LABEL_X, y + 1, 0); y += 16; }
   drawSprite(SPR.dadicon, 0, ICON_X, y + 10); text('Dad (type USE DAD ON STAIRS)', LABEL_X, y + 1, 0); y += 16;
-  text('type USE <thing> ON <thing> to use something', 40, 152, 8);
+  text('LOOK AT any of these. Enter closes the bucket.', 40, 152, 8);
 }
 
+// Looking at something you are carrying is its own small scene. Every one
+// of these ends on a nudge rather than an instruction: the candle wants to
+// be inside something, the flame belongs at the top of something. A six
+// year old going through the bucket when he is stuck should come out with
+// an idea, not with the answer.
 const ITEMS = {
-  bucket:  { name: 'trick-or-treat bucket', spr: 'bucket', look: 'Your bucket. Orange, pumpkin face, a bit of a dent from last year. Perfect.' },
-  candle:  { name: 'candle', spr: 'candle', look: () => TXT.street.look.candle },
-  candy:   { name: 'candy (two)', spr: 'candy', look: () => TXT.street.candy },
-  glasses: { name: "Gus's glasses", spr: 'glasses', look: () => TXT.bean.look.glasses },
-  jar:     { name: 'jar with the flame', spr: 'jar', look: () => TXT.bean.jar },
-  spider:  { name: 'a very small spider', spr: 'spider', look: () => TXT.bean.look.spiderCarried },
-  mitten:  { name: 'a small red mitten', spr: 'mitten', look: () => TXT.street.look.mitten },
+  bucket:  { name: 'trick-or-treat bucket', spr: 'bucket', look: () => {
+    const n = S.inv.length - 1 + (S.got.candy ? 0 : 0);
+    return n > 0
+      ? `Your bucket. Orange, pumpkin face, a dent in the side from last year. There are ${n === 1 ? 'one thing' : n + ' things'} in it and room for a great deal more.`
+      : 'Your bucket. Orange, pumpkin face, a dent in the side from last year. Empty, which is a problem you intend to solve.';
+  } },
+  candle:  { name: 'candle', spr: 'candle', look: () =>
+    'A stubby candle in a little holder, still lit, shielded by your hand. It is a candle with opinions: it would like to be inside something round and orange with a face on it.' },
+  candy:   { name: 'candy (two)', spr: 'candy', look: () =>
+    'Two candies in purple wrappers. They crinkle when you walk. Dad says after. You are keeping an open mind about after, and about whether anybody else out here might want one.' },
+  glasses: { name: "Gus's glasses", spr: 'glasses', look: () =>
+    'A pair of round glasses, warm from being sat on. Everything through them is enormous and swimmy, which is how you know they are somebody else\'s, and that somebody is very much not having a good night without them.' },
+  jar:     { name: 'jar with the flame', spr: 'jar', look: () =>
+    'A jam jar with a little flame standing up inside it, perfectly calm, as if it were always meant to live here. It is borrowed. It belongs somewhere high up, and it knows it.' },
+  spider:  { name: 'a very small spider', spr: 'spider', look: () =>
+    'In the bucket, holding the rim with two legs and waving with another one. Travelling well. It would probably say hello to anybody you introduced it to, including somebody who would rather it did not.' },
+  mitten:  { name: 'a small red mitten', spr: 'mitten', look: () =>
+    'A small red mitten with a stripe round the cuff. Too small for you and much too small for Dad, which leaves one obvious category of person.' },
 };
 
 // ---------------------------------------------------------------- FINALE
@@ -1293,7 +1424,9 @@ const VERBS = {
   use: ['use', 'put', 'give', 'light', 'place', 'plant', 'hand'],
   talk: ['talk to', 'talk', 'speak to', 'speak', 'say hi to', 'say hello to', 'hello', 'hi', 'chat with', 'pet', 'knock on', 'knock', 'ask'],
   sign: ['place sign', 'put sign', 'put up sign', 'plant sign', 'sign here', 'put a sign', 'place a sign'],
-  dad: ['ask dad', 'dad', 'help', 'hint', 'what now', 'what do i do'],
+  // 'help' is not here any more: it opens the Help panel, and ASK DAD is
+  // the hint. A player who types HELP wants to know how to play.
+  dad: ['ask dad', 'dad', 'hint', 'what now', 'what do i do'],
   inv: ['inventory', 'i', 'inv', 'bag', 'bucket', 'what do i have'],
   climb: ['climb', 'go up', 'up'],
   open: ['open'],
@@ -1349,6 +1482,23 @@ function parse(raw) {
   if (!s) return;
   // sign and dad first (multi-word)
   if (VERBS.sign.some(v => s.startsWith(v)) || (s.includes('sign') && /(place|put|plant)/.test(s))) { const rest = s.replace(/.*sign( on| in| at)?/, '').replace(FILLER, ' ').trim(); return placeSign(findHotspot(rest)); }
+  if (/^(help|how do i play|how do you play|instructions|controls)$/.test(s)) { panel = 'help1'; return; }
+  if (/^(options|option|settings)$/.test(s)) { panel = 'opts'; return; }
+  const rn = raw.match(/^\s*(?:re)?name\s+(me|myself|james|dad|cat|the cat)\s+(.+)$/i);
+  if (rn) {
+    S.names = S.names || {};   // a save made before Options existed has none
+    const key = /^(me|myself|james)$/i.test(rn[1]) ? 'hero' : /dad/i.test(rn[1]) ? 'dad' : 'cat';
+    const v = cleanName(rn[2]);
+    if (!v) return say('That name has nothing in it. Try NAME CAT Mittens.');
+    S.names[key] = v; save();
+    // Deliberately no "X is called Y now": the old name is a default name,
+    // and renameText would swap it for the new one on the way to the screen,
+    // so the line came out as "Mittens is called Mittens now."
+    return say(key === 'cat' ? `Right. ${v} it is. ${v} does not appear to mind.`
+      : key === 'dad' ? `Noted. He answers to ${v} from here on.`
+      : `You are ${v} now. It suits you.`);
+  }
+  if (/^(names|reset names|names reset)$/.test(s)) { S.names = {}; save(); return say('Everybody has their own name back.'); }
   if (VERBS.dad.includes(s) || s.startsWith('ask dad')) return askDad();
   if (VERBS.inv.includes(s)) { bucketOpen = true; return; }
   if (VERBS.save.includes(s)) { save(); return say('Saved. Like a good adventurer.'); }
@@ -1410,6 +1560,10 @@ function parse(raw) {
     if (m) { const a = m[1].replace(FILLER, ' ').replace(/\s+/g, ' ').trim(), b = m[3].replace(FILLER, ' ').replace(/\s+/g, ' ').trim(); const it = findItem(a) || (a.includes('dad') ? 'dad' : null); const target = findHotspot(b) || findItem(b); if (!it) return (a.includes('spider') && f0().dadBrave) ? say(TXT.bean.spiderDadAgain) : say(`You don't have ${a}.`); if (target && cur().hotspots[target]) return walkToThen(target, () => useOn(it, target)); return useOn(it, target); }
   }
   rest = rest.replace(FILLER, ' ').replace(/\s+/g, ' ').trim();
+  // The signs are not an ITEM - they are a count - so LOOK AT THE SIGNS
+  // fell through to "that is not here" while four of them were in the
+  // bucket the player was staring at.
+  if (/^(lawn |election |dan |the )*signs?( bundle)?$/.test(rest) && (!verb || verb === 'look')) return say(signLook());
   if (/^(dad )?(carry me|piggyback|pick me up|shoulders)/.test(rest) || /carry me|piggyback/.test(s)) return S.screen === 'school' ? climbStairs() : say(TXT.school.useDadElse);
   if (!verb) { // maybe a bare noun: treat as look
     const h = findHotspot(rest) || findItem(rest); if (h) return doVerb('look', h); return say(pick(TXT.unknown));
@@ -1449,7 +1603,7 @@ function f0() { return S.flags; }
 function findHotspot(noun) {
   if (!noun) return null; noun = noun.replace(/\[cat\]/g, FILL.cat.toLowerCase());
   const H = cur().hotspots;
-  const namesOf = id => { const h = H[id]; return [id, h.name.toLowerCase().replace(/^the /, ''), ...(h.syn || []).map(x => x.replace('[cat]', FILL.cat.toLowerCase()))]; };
+  const namesOf = id => { const h = H[id]; return [id, h.name.toLowerCase().replace(/^the /, ''), nm('cat').toLowerCase() === noun && id === 'cat' ? noun : null, ...(h.syn || []).map(x => x.replace('[cat]', nm('cat').toLowerCase()))].filter(Boolean); };
   for (const id in H) if (namesOf(id).some(n => noun === n || noun === 'the ' + n)) return id;
   for (const id in H) if (namesOf(id).some(n => noun.endsWith(' ' + n) || n.endsWith(' ' + noun))) return id;
   for (const id in H) if (namesOf(id).some(n => noun.includes(n) || n.includes(noun))) return id;
@@ -1585,6 +1739,12 @@ function takeIt(id) {
   }
   if (S.screen === 'street' && id === 'leaves') return say(kickLeaves());
   if (S.screen === 'market' && id === 'squirrel') return say(TXT.market.takeSquirrel);
+  if (S.screen === 'street' && id === 'neighbour') return say("You cannot take a house, James. Houses are famously difficult to lift and Mrs. Patel is standing right there.");
+  if (S.screen === 'street' && id === 'house') return say("That is our house. We already have it.");
+  if (S.screen === 'street' && id === 'wcat') return say("It is somebody else's cat and it is inside somebody else's house, which is two whole problems.");
+  if (S.screen === 'bean' && id === 'tot') return say("The dinosaur is a person, not a thing. A small person with a tail, but a person.");
+  if (S.screen === 'bean' && id === 'gus') return say("Gus is a grown adult and also, tonight, a ghost. He is not going in the bucket.");
+  if (S.screen === 'school' && (id === 'lantern' || id === 'tower')) return say("It is the size of a car and it is on top of a tower. Even Dad could not take that.");
   if (S.screen === 'market' && ['pumpkins', 'hay', 'market'].includes(id)) return say(TXT.market.takeThing);
   if (S.screen === 'market' && id === 'scarecrow') return say("You cannot take a candidate, James. They have commitments.");
   if (S.screen === 'bean' && (id === 'glasses' || (id === 'cat' && f.catMoved && !has('glasses') && !f.gusGlasses))) { if (!f.catMoved) return say(TXT.bean.look.cat); if (has('glasses') || f.gusGlasses) return say(TXT.bean.look.catMoved); give('glasses'); award('glasses', 5); return say(TXT.bean.takeGlasses); }
@@ -1624,6 +1784,11 @@ function talkTo(id) {
     if (f.metSquirrel) return say(M.talkSquirrelAgain);
     f.metSquirrel = true; return say(M.talkSquirrel);
   }
+  if (S.screen === 'street' && id === 'house') return say("\"Hello, house,\" you say. The porch light buzzes once. You decide to take that as a hello.");
+  if (S.screen === 'market' && id === 'pumpkins') return say("You say hello to the big one with the ribbon. It says nothing at all, but it says it very confidently.");
+  if (S.screen === 'market' && id === 'hay') return say("You say hello to a wall of hay. The hay keeps its own counsel.");
+  if (S.screen === 'school' && id === 'lantern') return say(S.flags.lit ? "\"Hello up there,\" you say. The great lantern grins down at the whole city and does not need to say anything." : "\"Hello up there,\" you say. Nothing. It is a pumpkin and it is not even lit yet, so honestly, fair enough.");
+  if (S.screen === 'school' && id === 'school') return say("The school says nothing, which is exactly how a school behaves at night.");
   if (S.screen === 'school') { if (id === 'plaque') return say(lookAt('plaque')); }
   return say(pick(TXT.cantTalk));
 }
@@ -1742,6 +1907,15 @@ function useOn(item, id) {
 // answer never beats an actual puzzle step.
 function missLine(item, id) { return MISSES[item + ':' + id] || null; }
 function climbStairs() { const f = S.flags; if (f.upstairs) return say(TXT.school.look.stairsDone); f.upstairs = true; award('stairs', 5); return say(TXT.school.useDadStairs); }
+function signLook() {
+  const n = S.signs;
+  if (!n) return "All four signs are up. Dad has photographed every one of them and will be showing people on his phone for weeks.";
+  const here = { street: 'Two lawns on this street and nobody has said no yet.',
+                 bean: 'That planter by the patio is good soil, if Gus says yes.',
+                 market: 'That strip of grass by the road is about as flat as ground gets.',
+                 school: 'Not here. This is everybody\'s, not anybody\'s.' }[S.screen];
+  return `${n === 1 ? 'One sign' : n + ' signs'} left in the bundle, wire legs and all, with DAN ATKINSON across the front in big letters. They go on lawns, with permission. ${here}`;
+}
 function placeSign(id) {
   const f = S.flags, St = TXT.street, B = TXT.bean, C = TXT.school;
   if (S.signs <= 0) return say("No signs left in the bundle. You placed them all!");
@@ -1802,15 +1976,22 @@ cmd.addEventListener('keydown', e => {
   // is the complaint. Space is deliberately not a dismiss key in here, since
   // commands contain spaces.
   if (e.key === 'Enter') {
+    if (panel) { panel = panel === 'help1' ? 'help2' : null; e.preventDefault(); e.stopPropagation(); return; }
+    if (bucketOpen) { bucketOpen = false; e.preventDefault(); e.stopPropagation(); return; }
     if (msgOpen) { nextMsg(); e.preventDefault(); e.stopPropagation(); return; }
     run(cmd.value); e.preventDefault();
   }
+  if (e.key === 'Escape' && (panel || bucketOpen)) { panel = null; bucketOpen = false; e.preventDefault(); e.stopPropagation(); return; }
   if (e.key === 'Escape') cmd.blur();
   e.stopPropagation();
 });
 window.addEventListener('keydown', e => {
   if (e.target === cmd && !e.key.startsWith('Arrow')) return;
   if (finaleState && finaleState.stage === 2 && e.key === 'Enter') { S = START(); awarded = {}; finaleState = null; save(); beginIntro(); return; }
+  if (panel && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) {
+    panel = (e.key === 'Enter' && panel === 'help1') ? 'help2' : null; e.preventDefault(); return;
+  }
+  if (bucketOpen && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) { bucketOpen = false; e.preventDefault(); return; }
   if (msgOpen && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) { nextMsg(); e.preventDefault(); return; }
   if (catPlay && (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ')) { endCat(); e.preventDefault(); return; }
   if (e.key === 'h' || e.key === 'H') { debug = !debug; return; }
@@ -1879,6 +2060,7 @@ function hitHotspot(p) { const H = cur().hotspots; let best = null, bestArea = 1
 function onTap(e) {
   e.preventDefault(); const p = canvasPoint(e);
   if (finaleState) { if (finaleState.stage === 2) { S = START(); awarded = {}; finaleState = null; save(); beginIntro(); } else if (msgOpen) nextMsg(); return; }
+  if (panel) { panel = panel === 'help1' ? 'help2' : null; return; }
   if (msgOpen) { nextMsg(); return; }
   if (endCat()) return;
   if (bucketOpen) { bucketOpen = false; return; }
@@ -1893,6 +2075,11 @@ function onTap(e) {
 }
 cv.addEventListener('mousedown', onTap); cv.addEventListener('touchstart', onTap, { passive: false });
 
+// The two bottom-bar buttons. They open a panel and hand focus straight
+// back to the command line, so a player who was typing is not stranded.
+document.getElementById('bucketbtn').onclick = () => { bucketOpen = !bucketOpen; panel = null; cmd.focus(); };
+document.getElementById('helpbtn').onclick = () => { panel = 'help1'; cmd.focus(); };
+document.getElementById('optbtn').onclick = () => { panel = 'opts'; cmd.focus(); };
 document.getElementById('crtbtn').onclick = () => { const m = document.getElementById('monitor'); m.classList.toggle('crt'); document.getElementById('crtbtn').textContent = 'CRT: ' + (m.classList.contains('crt') ? 'on' : 'off'); fit(); };
 function fit() {
   const stage = document.getElementById('stage'); const crt = document.getElementById('monitor').classList.contains('crt');
