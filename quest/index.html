@@ -454,6 +454,9 @@ const SCREENS = {
       pumpkin:   { x: 246, y: 136, w: 18,  h: 18,  name: 'pumpkin', syn: ['jack o lantern','jackolantern','lantern','pumpkins','their pumpkin'], sx: 255, sy: 152 },
       nlawn:     { x: 186, y: 150, w: 134, h: 18,  name: "the neighbours' lawn", syn: ['their lawn','neighbour lawn','neighbor lawn','their grass','their yard'] },
       pole:      { x: 230, y: 0,   w: 90,  h: 82,  name: 'big tree', syn: ['tree','maple','hydro pole','pole','post','branches'] },
+      wcat:      { x: 243, y: 66,  w: 20,  h: 32,  name: 'upstairs window', syn: ['window','lit window','upstairs','curtains','cat in the window','window cat'], sx: 252, sy: 95 },
+      leaves:    { x: 225, y: 154, w: 95,  h: 26,  name: 'drift of leaves', syn: ['leaves','leaf','leaf pile','pile of leaves','drift','gutter'] },
+      mitten:    { x: 261, y: 160, w: 24,  h: 16,  name: 'mitten', syn: ['red mitten','lost mitten','glove'], item: true, when: 'mittenSeen', sx: 272, sy: 174 },
       street:    { x: 30,  y: 168, w: 290, h: 32,  name: 'street', syn: ['road'] },
     }
   },
@@ -465,13 +468,14 @@ const SCREENS = {
     hotspots: {
       bean:    { x: 36,  y: 0,   w: 216, h: 150, name: 'the Bean', syn: ['coffee shop','cafe','shop','building'] },
       door:    { x: 182, y: 48,  w: 40,  h: 98,  name: 'door', syn: ['front door','doorway','inside','go inside','enter'] },
-      spider:  { x: 172, y: 54,  w: 14,  h: 14,  name: 'spider', syn: ['web','little spider','tiny spider','bug'], sx: 179, sy: 68 },
+      spider:  { x: 172, y: 54,  w: 14,  h: 14,  name: 'spider', syn: ['web','little spider','tiny spider','bug'], item: true, sx: 179, sy: 68 },
       window:  { x: 56,  y: 42,  w: 126, h: 76,  name: 'window', syn: ['big window'] },
       gus:     { x: 188, y: 104, w: 26,  h: 42,  name: 'Gus', syn: ['ghost','barista','man','sheet'], sx: 201, sy: 146 },
       table:   { x: 88,  y: 120, w: 58,  h: 22,  name: 'patio table', syn: ['table','patio'] },
       cat:     { x: 102, y: 110, w: 24,  h: 14,  name: 'cat', syn: ['[cat]','kitty','pet','the cat'], sx: 114, sy: 124 },
       glasses: { x: 102, y: 116, w: 20,  h: 10,  name: 'glasses', syn: ['spectacles','specs'], item: true, when: 'catMoved', sx: 114, sy: 126 },
       planter: { x: 15,  y: 120, w: 84,  h: 38,  name: 'planter', syn: ['planter box','flower box','flowers','box'] },
+      tot:     { x: 281, y: 146, w: 32,  h: 46,  name: 'the dinosaur', syn: ['dinosaur','kid','child','trick or treater','trick-or-treater','other kid','costume kid','girl','boy'], sx: 296, sy: 190 },
       street:  { x: 0,   y: 158, w: 320, h: 42,  name: 'sidewalk', syn: ['street','road','pavement'] },
     }
   },
@@ -484,6 +488,7 @@ const SCREENS = {
       market:    { x: 36,  y: 48,  w: 250, h: 116, name: 'the market', syn: ['stall','stalls','farmers market','awning','shop','building'] },
       scarecrow: { x: 88,  y: 134, w: 34,  h: 48,  name: 'the Scarecrow', syn: ['scarecrow','straw man','candidate','corn guy'], sx: 105, sy: 182 },
       hay:       { x: 208, y: 116, w: 66,  h: 52,  name: 'hay bales', syn: ['hay','bales','bale','straw'] },
+      squirrel:  { x: 244, y: 108, w: 28,  h: 22,  name: 'squirrel', syn: ['grey squirrel','acorn','rodent','tail'], when: 'squirrelHere', sx: 258, sy: 128 },
       pumpkins:  { x: 254, y: 138, w: 66,  h: 34,  name: 'pile of pumpkins', syn: ['pumpkins','pumpkin pile','heap','big pumpkin'] },
       stalls:    { x: 60,  y: 108, w: 150, h: 58,  name: 'dark stalls', syn: ['stall','dark','under the awning','crates','shadow','back of the stalls'] },
       pole:      { x: 10,  y: 0,   w: 24,  h: 168, name: 'hydro pole', syn: ['pole','post','wires','hydro'] },
@@ -595,11 +600,29 @@ const TXT = {
       neighbourLit: "The neighbours'. Mrs. Patel is out on her step in a cardigan, looking very pleased with her pumpkin.",
       pumpkin: "A big carved pumpkin with a lovely grin. Dark inside. Sad pumpkin.",
       pumpkinLit: "The pumpkin is lit! Grinning like anything. Warm orange all over the porch.",
+      wcat: "An upstairs window with the lamp on behind it, and a very large ginger cat sitting in it like an ornament. It is watching you. It has been watching you for a while.",
+      wcatWaved: "The ginger cat in the window, one paw still half up, having decided that was enough for one evening.",
+      leaves: "A long drift of leaves banked up along the kerb. The good kind. Crunchy all the way down.",
+      leavesSearched: "The leaves you have already been through, with a small red mitten sitting on top of them where you left it.",
+      leavesEmpty: "The leaves, thoroughly kicked. Nothing else in there but more leaves.",
+      mitten: "A small red woollen mitten. Not yours. Somebody out here has one cold hand.",
       nlawn: "The neighbours' lawn. Tidy. Leaves raked into a pile the boys are going to jump in tomorrow.",
       nlawnSigned: "The neighbours' lawn, now with a DAN ATKINSON sign on it. Mrs. Patel gave it a nod.",
       pole: "The big maple on the corner. Half its leaves are on the ground. The other half are thinking about it.",
       street: "Our street. Leaves everywhere. The good kind of mess.",
     },
+    kickLeaves: ["You take a run at the leaves and go straight through the middle of them. They go everywhere. This is the correct way to deal with leaves.",
+                 "Dad: \"Oh that's a good one. That's a good one, bud.\"",
+                 "There is something red in what is left of the pile. A mitten."],
+    kickAgain: "You go through them again. Still excellent. Still only leaves.",
+    takeMitten: "You pick up the mitten and put it in the bucket. Somewhere out here there is a kid with one cold hand.",
+    wcatWave: ["You wave up at the ginger cat in the window.",
+               "The cat looks at you for a long, long moment.",
+               "Then it lifts one paw off the sill, holds it there, and puts it down again.",
+               "Dad: \"...Did that cat just wave back at you?\" It did. You both saw it.",
+               "The cat gets up, turns round twice, and sits back down facing the other way, which is cat for goodbye."],
+    wcatAgain: "You wave again. The cat has done its waving for tonight and you respect that.",
+    wcatTalk: "\"Hello, cat,\" you say, to a window on the first floor. The cat's tail goes once, left to right. That is a reply.",
     takeCandle: "You take the candle. Carefully. Two hands. Dad nods.",
     useCandlePumpkin: ["You lean in and light the pumpkin. The grin glows. The whole porch goes warm orange.",
                        "Dad: \"Oh, that's better. That's much better.\"",
@@ -634,6 +657,8 @@ const TXT = {
       doorClear: "The front door. The spider has moved up to the corner and is waving. The door is all yours.",
       spider: "A tiny spider. Honestly tiny. Big round eyes. It looks at you. You look at it.",
       spiderHi: "The spider, up in the corner now, doing a little wave with one leg. Friends.",
+      spiderCarried: "In the bucket, holding on to the rim with two legs and waving with another one. Travelling well.",
+      doorEmpty: "The front door, with nothing on the frame at all, because the nothing is in your bucket.",
       window: "Through the window: a man in a bedsheet with eyeholes, bumping gently into the espresso machine.",
       windowDad: "Dad's face, pressed to the glass, giving you a thumbs up. He's not coming in. He's VERY supportive from out here.",
       gus: "Gus. He runs the Bean. Tonight he's a ghost: bedsheet, two eyeholes, glasses on the OUTSIDE of the sheet. Except there are no glasses.",
@@ -643,6 +668,8 @@ const TXT = {
       catMoved: "[cat], rolled over and purring like a small engine. Nothing under there now. Just cat.",
       glasses: "A pair of round glasses, slightly warm. Cat warm.",
       planter: "A planter box by the patio, full of orange mums. Good soil. Sign soil.",
+      tot: "A kid in a dinosaur costume, a bit smaller than you, holding a pillowcase with about four things in it. One hand is in a mitten. The other hand is up a sleeve.",
+      totWarm: "The dinosaur, both hands in mittens now, going through the pillowcase and reporting on it to nobody in particular.",
       planterSigned: "The planter, with a DAN ATKINSON sign standing proud among the mums. One metre from the curb, darling.",
       street: "The sidewalk outside the Bean. A little chalk drawing of a pumpkin. Somebody's good.",
     },
@@ -650,8 +677,33 @@ const TXT = {
                  "The spider lifts one leg. It waves. Then it scoots up its thread to the top corner, out of the way, still waving.",
                  "Dad, from the sidewalk: \"Did it WAVE? Okay. Okay okay okay. That's... that's actually lovely. I'm still not coming in.\""],
     talkSpiderAgain: "You wave. The spider waves. This could go on all night.",
+    takeSpiderEarly: ["You put your hand out. The spider does not get on it.",
+                      "Fair enough. You have not been introduced."],
+    takeSpider: ["You hold your hand flat under the thread and the spider walks straight on, eight feet, no fuss, like it has been waiting all evening for a lift.",
+                 "You tip it gently into the bucket, where it sits between the candy and the side, looking pleased with the arrangement.",
+                 "Dad, from the sidewalk, in a voice that is trying very hard: \"Is it. Is it in the bucket. Okay. Okay that's fine. That's a normal thing.\""],
+    spiderDad: ["You walk over and hold the bucket up. Dad leans back about as far as a person can lean and still be standing.",
+                "\"Dad,\" you say. \"It's more scared of you than you are of it.\"",
+                "Dad looks at the spider. The spider looks at Dad. Neither of them moves.",
+                "Dad: \"...Is it though? Is it really? Because I'm quite scared.\" But he crouches down, which he has not done all night, and gets his face properly close.",
+                "\"Hello,\" says Dad, to a spider. \"Sorry about earlier.\" The spider waves one leg at him and Dad makes a noise like a kettle.",
+                "It goes up your sleeve and off along the wall, home. Dad stands up, brushes his knees, and does not go anywhere near the window."],
+    spiderDadAgain: "Dad glances at the door frame. \"We're good, me and that spider. We have an understanding.\"",
+    spiderDadAgainHeld: "Dad looks into the bucket and only leans back a little bit. \"Hello again. Still doing a great job.\"",
+    spiderElse: "The spider sits in the bucket and declines to get involved.",
     doorBlocked: "Dad: \"I'll be right out here, bud. By the window. If you need me just holler.\" You can go in whenever you like. The spider is up in the corner now.",
     doorSpider: "The spider is right there in the doorway, looking at you. It seems like it wants to say hello before anyone goes past.",
+    talkTot: ["\"Nice dinosaur,\" you say.",
+              "\"Thank you,\" says the dinosaur. \"My mum made the tail. I lost a mitten.\"",
+              "The dinosaur holds up one hand in a red mitten and one hand pulled up inside a sleeve, by way of evidence.",
+              "\"It's red,\" says the dinosaur. \"It was on my hand and then it was not on my hand.\""],
+    talkTotAgain: "The dinosaur: \"Still one mitten. If you see a red one it is mine. It has a stripe.\"",
+    talkTotWarm: "The dinosaur, waving a mittened hand: \"Two mittens!\" This remains the headline.",
+    giveMitten: ["You hold out the red mitten. The dinosaur looks at it the way you look at the big pumpkin at the market.",
+                 "\"THAT IS MY MITTEN.\"",
+                 "It goes straight on. The dinosaur holds both hands up in front of its face and turns them round, checking.",
+                 "\"You can have two of my things,\" says the dinosaur, and puts two candies in your bucket before you can say anything about it.",
+                 "Dad, quietly, somewhere behind you: \"That's my kid, that is.\""],
     enterBean: "You step inside. Warm. Smells like cinnamon. Gus is feeling his way along the counter.",
     talkGusBlind: ["Gus: \"Hello? Someone's there. Small someone. Is that James? I'd know that bucket anywhere. I can't see a THING.\"",
                    "Gus: \"I put my glasses on the outside of the sheet, very clever, and then I took the sheet off to steam the milk, and then... well. Then they were gone.\"",
@@ -685,6 +737,9 @@ const TXT = {
       market: "The market stall, all under one long stripy awning. It smells like apples and cold air.",
       hay: "Hay bales stacked like big scratchy stairs. You are not allowed to climb them. You have asked. Twice.",
       pumpkins: "A heap of pumpkins. One of them is enormous and has a ribbon on it, so it won something.",
+      squirrel: "A grey squirrel on top of the hay bales, sitting up with an acorn held in both front paws like a sandwich. It stops chewing when you look at it. It does not stop looking at you.",
+      squirrelFed: "The top of the hay bales, empty. The squirrel is somewhere up the maple with a whole candy to itself and no intention of coming back down tonight.",
+      squirrelGone: "The top of the hay bales, with no squirrel on it, on account of the shouting.",
       pole: "A hydro pole. Wires going off in four directions at once. Dad looks at it the way he looks at every hydro pole.",
       grass: "A strip of grass along the front of the market. Good grass. Flat, soft, nothing buried in it. Sign grass.",
       grassSigned: "The grass strip, with a DAN ATKINSON sign standing in it. The Scarecrow says it brings up the tone.",
@@ -715,6 +770,18 @@ const TXT = {
                 "Dad, very quietly: \"Oh, would you look at that.\" He takes a photo with no flash, which is the most careful thing he has done all night.",
                 "You put the jar away before you wake her."],
     stallsAgain: "The kitten is still there, still asleep, still the best thing at this market.",
+    talkSquirrel: ["\"Hello,\" you say to the squirrel.",
+                   "The squirrel does not say hello. The squirrel turns the acorn round once, which might mean anything.",
+                   "Dad: \"I think that's the most attention a squirrel has ever paid me. It's not even looking at me. It's looking at your bucket.\""],
+    talkSquirrelAgain: "The squirrel chatters at you, fast and cross and quite rude, and then goes back to the acorn.",
+    squirrelCandy: ["You put a candy down on the corner of the hay bale and step back, the way you are supposed to.",
+                    "The squirrel comes down the bales in four hops, takes the candy in both paws, and sits up with it.",
+                    "It looks at the candy. It looks at you. It looks at the candy.",
+                    "Then it goes up the bales, into the maple and out of sight, with the candy, at a speed that suggests it was never going to share.",
+                    "Dad: \"Well. That's gone. Worth it though.\" It was worth it."],
+    squirrelShout: ["The squirrel does not wait to hear the rest of it. Up the bales, along the awning, into the tree, gone.",
+                    "Dad: \"Ah. Yeah. That'll do it.\""],
+    takeSquirrel: "You are not taking a squirrel. There is no version of this where you get to take a squirrel.",
     takeThing: "That belongs to the market, and we are not a market."
   },
 
@@ -768,6 +835,9 @@ const TXT = {
     `Signs placed: ${signs} of 4`,
     signs === 4 ? "A great, great many thanks to you." : "",
     S.got.catplay ? "You were also, briefly, a cat." : "",
+    S.got.brave ? "Dad is no longer afraid of spiders. Mostly." : "",
+    S.got.mitten ? "Somewhere out there a dinosaur has two warm hands." : "",
+    S.got.wcat ? "A cat waved at you. That happened." : "",
     "",
     "Written with love by Ashley and Dad",
     "Made in Guelph, the Royal City",
@@ -782,7 +852,7 @@ const TXT = {
 // ---------------------------------------------------------------- STATE
 const START = () => ({
   screen: 'street', x: 40, y: 165, facing: 1,
-  score: 0, got: {}, flags: {}, inv: ['bucket'], signs: 4, placed: {},
+  score: 0, got: {}, flags: { squirrelHere: true }, inv: ['bucket'], signs: 4, placed: {},
   seenIntro: false, done: false,
 });
 let S = START();
@@ -814,7 +884,7 @@ const bgImgs = {};
 // Optional picture sprites. If assets/sprites/<name>.png exists it replaces the
 // hand-pixeled one. Make them with tools/sprite.py (RGBA, game-pixel height,
 // facing right, feet at the bottom row).
-const IMGSPR = {}; const IMGSPR_NAMES = ['james', 'dad', 'gus', 'cat', 'spider', 'sign', 'pumpkin_dark', 'pumpkin_lit', 'candle', 'jar', 'patel', 'bucket', 'candy', 'glasses', 'dadicon', 'scarecrow'];
+const IMGSPR = {}; const IMGSPR_NAMES = ['james', 'dad', 'gus', 'cat', 'spider', 'sign', 'pumpkin_dark', 'pumpkin_lit', 'candle', 'jar', 'patel', 'bucket', 'candy', 'glasses', 'dadicon', 'scarecrow', 'squirrel', 'mitten', 'trickortreater', 'window_cat'];
 for (const n of IMGSPR_NAMES) { const im = new Image(); im.src = 'assets/sprites/' + n + '.png'; im.onload = () => { IMGSPR[n] = im; }; im.onerror = () => {}; }
 function sprName(spr) { for (const k in SPR) if (SPR[k] === spr) return k; return null; }
 for (const k in SCREENS) { const im = new Image(); im.src = SCREENS[k].bg; im.onload = () => { bgImgs[k] = im; }; im.onerror = () => {}; }
@@ -840,17 +910,19 @@ let catPlay = null;
 let dadX = 20, dadY = 165, dadFacing = 1, dadStep = 0;
 let awarded = {};
 
-// Nineteen deeds at five points. Fourteen are the story: ten award() calls
-// plus the four signs, which is 70. Five are secrets nobody is told about -
-// being the cat, the kitten in the stalls, counting the pumpkins, hugging
-// Dad and XYZZY - so finishing the story leaves 25 points out there and a
-// reason to go back and poke at things.
+// Twenty-three deeds at five points. Fourteen are the story: ten award()
+// calls plus the four signs, which is 70. Nine are secrets nobody is told
+// about - being the cat, the kitten in the stalls, counting the pumpkins,
+// hugging Dad, XYZZY, introducing Dad to the spider, waving at the cat in
+// the window, feeding the squirrel, and giving the lost mitten back - so
+// finishing the story leaves 45 points out there and a reason to go back
+// and poke at things.
 // One of the ten is the hidden one, so finishing the story leaves you on 60
 // of 65 and something still to find, the way the old games did it.
 // This read "of 50" in three places and a child who finished the game was
 // shown 60 of 50, which looks like a bug to the one person who must not
 // think the game is broken.
-const MAX_SCORE = 95;
+const MAX_SCORE = 115;
 function award(key, pts) { if (awarded[key]) return; awarded[key] = true; S.score += pts; S.got[key] = true; flash = { t: 30, txt: '+' + pts }; save(); }
 let flash = null;
 
@@ -946,20 +1018,35 @@ const SURVEY = {
       ? "The neighbours' pumpkin is grinning its head off, and Mrs. Patel is out on her step in a cardigan admiring it."
       : "The neighbours' house is across the way and their pumpkin is dark, which is the one that is wrong.");
     bits.push("Our lawn is by the step and theirs is across from it, both of them flat and sign-shaped.");
+    bits.push(f.wcatWaved
+      ? "In the upstairs window over there, the ginger cat is sitting with its back to the street, which is its own business."
+      : "There is a lamp on in an upstairs window over there, and something large and ginger sitting in it, watching the pavement.");
     bits.push("A big maple on the corner is letting go of its last leaves all over the road.");
+    bits.push(!f.mittenSeen
+      ? "They have banked up into a long drift of leaves along the kerb, deep enough to go through properly."
+      : (has('mitten') || f.mittenBack)
+        ? "The drift of leaves along the kerb has been thoroughly dealt with."
+        : "The drift of leaves along the kerb has been kicked apart, and the small red mitten that was in it is lying on top.");
     return bits.join(' ');
   },
   bean: f => {
     const bits = ["The Bean, warm and yellow in the window, and somebody inside is wearing a bedsheet."];
-    bits.push(f.spiderHi
-      ? "The little spider has moved up to the top corner of the door frame and waves whenever you look at it."
-      : "There is a very small spider sitting right on the door frame, which is why Dad is standing where he is standing.");
+    bits.push(has('spider')
+      ? "The door frame is bare, on account of its spider being in your bucket."
+      : f.dadBrave
+        ? "The little spider is back up in the top corner of the door frame, and Dad nods at it on the way past like a neighbour."
+        : f.spiderHi
+          ? "The little spider has moved up to the top corner of the door frame and waves whenever you look at it."
+          : "There is a very small spider sitting right on the door frame, which is why Dad is standing where he is standing.");
     bits.push(f.catMoved
       ? (has('glasses') || f.gusGlasses
           ? "The cat is flopped on the patio table, purring, with nothing underneath her any more."
           : "The cat has rolled over on the patio table, and there is a pair of round glasses where she was sitting.")
       : "A cat is sitting on the patio table out front, holding extremely still, the way cats do when they are on top of something.");
     bits.push("Gus is in the doorway, and there is a planter box of orange mums by the sidewalk with very good soil in it.");
+    bits.push(f.mittenBack
+      ? "Further along the pavement, the kid in the dinosaur costume is going through a pillowcase with two mittened hands."
+      : "Further along the pavement there is another kid in a dinosaur costume, holding a pillowcase, with one hand up a sleeve.");
     return bits.join(' ');
   },
   market: f => {
@@ -970,6 +1057,9 @@ const SURVEY = {
     bits.push(f.metScarecrow
       ? "The Scarecrow is standing by the front, looking pleased with himself and his platform."
       : "A scarecrow is standing by the front with a sign propped against his boot. He does not look like a spooky one.");
+    if (f.squirrelHere) bits.push("A grey squirrel is sitting up on top of the hay bales with an acorn, keeping an eye on your bucket.");
+    else if (f.squirrelFed) bits.push("The hay bales have no squirrel on them any more, because the squirrel has gone up a tree with your candy.");
+    else bits.push("The hay bales have no squirrel on them any more, because of the shouting.");
     bits.push("There is a good flat strip of grass along the road, and a hydro pole on the left with wires going off in four directions.");
     return bits.join(' ');
   },
@@ -1055,6 +1145,11 @@ function render() {
     // than given a hand-pixeled fallback: there is no SPR.patel, and an
     // absent neighbour is better than a crash.
     if (S.flags.pumpkinLit && IMGSPR.patel) draws.push({ y: 151, f: () => drawImgSprite(IMGSPR.patel, 0, 240, 153, false, sc.scale || 1) });
+    // The window cat and the mitten are finds rather than puzzle pieces, so
+    // both are drawn straight from the image with no hand-pixeled fallback.
+    if (IMGSPR.window_cat) draws.push({ y: 95, f: () => drawImgSprite(IMGSPR.window_cat, 0, H.wcat.sx, H.wcat.sy, false, 1) });
+    if (S.flags.mittenSeen && !has('mitten') && !S.flags.mittenBack && IMGSPR.mitten)
+      draws.push({ y: H.mitten.sy, f: () => drawImgSprite(IMGSPR.mitten, 0, H.mitten.sx, H.mitten.sy, false, sc.scale || 1) });
     if (S.placed.A) draws.push({ y: 176, f: () => drawSprite(SPR.sign, 0, 26, 170) });
     if (S.placed.B) draws.push({ y: 164, f: () => drawSprite(SPR.sign, 0, 250, 162) });
   }
@@ -1063,10 +1158,13 @@ function render() {
     // SPR.scarecrow to fall back to, and drawSprite would read .frames off
     // undefined and take the whole render down with it.
     if (IMGSPR.scarecrow) draws.push({ y: H.scarecrow.sy, f: () => drawImgSprite(IMGSPR.scarecrow, 0, H.scarecrow.sx, H.scarecrow.sy, false, sc.scale || 1) });
+    if (S.flags.squirrelHere && IMGSPR.squirrel)
+      draws.push({ y: H.squirrel.sy, f: () => drawImgSprite(IMGSPR.squirrel, 0, H.squirrel.sx, H.squirrel.sy, false, 1) });
     if (S.placed.D) draws.push({ y: 176, f: () => drawSprite(SPR.sign, 0, 196, 176) });
   }
   if (S.screen === 'bean') {
-    const sp = H.spider; draws.push({ y: 300, f: () => drawSprite(SPR.spider, 0, S.flags.spiderHi ? sp.sx + 4 : sp.sx, S.flags.spiderHi ? sp.sy - 10 : sp.sy) });
+    const sp = H.spider;
+    if (!has('spider')) draws.push({ y: 300, f: () => drawSprite(SPR.spider, 0, S.flags.spiderHi ? sp.sx + 4 : sp.sx, S.flags.spiderHi ? sp.sy - 10 : sp.sy) });
     draws.push({ y: H.gus.sy, f: () => drawSprite(SPR.gus, 0, H.gus.sx, H.gus.sy, false, sc.scale || 1) });
     // No glasses drawn on Gus: his own render already wears a pair, up on
     // his head, so the overlay was a second pair on top of the first.
@@ -1074,6 +1172,8 @@ function render() {
     else if (S.flags.catMoved) draws.push({ y: H.cat.sy, f: () => drawSprite(SPR.cat, 0, H.cat.sx + 8, H.cat.sy, true) });
     else draws.push({ y: H.cat.sy, f: () => drawSprite(SPR.cat, 0, H.cat.sx, H.cat.sy) });
     if (S.flags.catMoved && !has('glasses') && !S.flags.gusGlasses) draws.push({ y: H.glasses.sy, f: () => drawSprite(SPR.glasses, 0, H.glasses.sx - 8, H.glasses.sy) });
+    if (!S.flags.totGone && IMGSPR.trickortreater)
+      draws.push({ y: H.tot.sy, f: () => drawImgSprite(IMGSPR.trickortreater, 0, H.tot.sx, H.tot.sy, true, sc.scale || 1) });
     if (S.placed.C) draws.push({ y: 147, f: () => drawSprite(SPR.sign, 0, 52, 152) });
   }
   if (S.screen === 'school') {
@@ -1137,6 +1237,8 @@ const ITEMS = {
   candy:   { name: 'candy (two)', spr: 'candy', look: () => TXT.street.candy },
   glasses: { name: "Gus's glasses", spr: 'glasses', look: () => TXT.bean.look.glasses },
   jar:     { name: 'jar with the flame', spr: 'jar', look: () => TXT.bean.jar },
+  spider:  { name: 'a very small spider', spr: 'spider', look: () => TXT.bean.look.spiderCarried },
+  mitten:  { name: 'a small red mitten', spr: 'mitten', look: () => TXT.street.look.mitten },
 };
 
 // ---------------------------------------------------------------- FINALE
@@ -1185,6 +1287,9 @@ const VERBS = {
   open: ['open'],
   save: ['save'], restore: ['restore', 'load'], restart: ['restart', 'start over'],
   eat: ['eat', 'unwrap'],
+  // Not a general verb: the leaves are the only thing on any screen worth
+  // going through with both feet, and every word for doing that lands here.
+  kick: ['kick', 'search', 'jump in', 'jump into', 'rummage in', 'rummage', 'dig in', 'dig through', 'go through'],
 };
 const FILLER = /\b(the|a|an|to|at|please|up|some|my|that|this)\b/g;
 // The one thing that obviously goes with a thing. So LIGHT THE PUMPKIN and
@@ -1253,18 +1358,44 @@ function parse(raw) {
     sleep: 'sleep', nap: 'sleep', hide: 'hide', fly: 'fly', burp: 'burp', think: 'think',
     wait: 'wait', z: 'wait' };
   const bare = s.replace(/^(i |let me |lets |let's )/, '').trim();
-  if (FUN[FUNSYN[bare]]) return say(FUN[FUNSYN[bare]]);
+  // WAVE and SHOUT take an object here - "wave at the cat", "shout at the
+  // squirrel" - so they are matched on the opening word rather than on the
+  // whole line the way the other silly verbs are.
+  const waved = /^wave\b/.test(bare), yelled = /^(shout|yell|scream)\b/.test(bare);
+  if (waved && S.screen === 'street') {
+    const f = S.flags;
+    if (f.wcatWaved) return say(TXT.street.wcatAgain);
+    f.wcatWaved = true; award('wcat', 5); return say(TXT.street.wcatWave);
+  }
+  if (yelled && S.screen === 'market' && S.flags.squirrelHere) {
+    S.flags.squirrelHere = false; return say([...FUN.shout.slice(0, 1), ...TXT.market.squirrelShout]);
+  }
+  if (waved) return say(FUN.wave);
+  if (yelled) return say(FUN.shout);
+  const fs = FUNSYN[bare];
+  if (FUN[fs]) return say(FUN[fs]);
   if (/^(hug|cuddle|squeeze)( dad| my dad)?$/.test(bare) || bare === 'hug dad') {
     const g = FUN_SCORED.hug; award(g.key, 5); return say(g.lines);
   }
   if (bare === 'xyzzy' || bare === 'plugh') {
     const g = FUN_SCORED.xyzzy; award(g.key, 5); return say(g.lines);
   }
+  const shw = s.match(/^(?:show|introduce) (.+?) (?:to|the) (.+)$/);
+  if (shw) {
+    const ends = [shw[1], shw[2]].map(x => x.replace(FILLER, ' ').replace(/\s+/g, ' ').trim());
+    const asItem = ends.map(findItem), asSpot = ends.map(findHotspot);
+    for (const i of [0, 1]) {
+      const j = 1 - i, it = asItem[i], target = asSpot[j] || asItem[j];
+      if (it && it !== 'dad' && target && target !== it) {
+        return (target !== 'dad' && cur().hotspots[target]) ? walkToThen(target, () => useOn(it, target)) : useOn(it, target);
+      }
+    }
+  }
   let verb = null, rest = s;
   for (const v in VERBS) { for (const syn of VERBS[v].sort((a, b) => b.length - a.length)) { if (s === syn || s.startsWith(syn + ' ')) { verb = v; rest = s.slice(syn.length).trim(); break; } } if (verb) break; }
   if (verb === 'use') {
     const m = rest.match(/^(.*?) (on|with|to|in|into|onto) (.*)$/);
-    if (m) { const a = m[1].replace(FILLER, ' ').replace(/\s+/g, ' ').trim(), b = m[3].replace(FILLER, ' ').replace(/\s+/g, ' ').trim(); const it = findItem(a) || (a.includes('dad') ? 'dad' : null); const target = findHotspot(b) || findItem(b); if (!it) return say(`You don't have ${a}.`); if (target && cur().hotspots[target]) return walkToThen(target, () => useOn(it, target)); return useOn(it, target); }
+    if (m) { const a = m[1].replace(FILLER, ' ').replace(/\s+/g, ' ').trim(), b = m[3].replace(FILLER, ' ').replace(/\s+/g, ' ').trim(); const it = findItem(a) || (a.includes('dad') ? 'dad' : null); const target = findHotspot(b) || findItem(b); if (!it) return (a.includes('spider') && f0().dadBrave) ? say(TXT.bean.spiderDadAgain) : say(`You don't have ${a}.`); if (target && cur().hotspots[target]) return walkToThen(target, () => useOn(it, target)); return useOn(it, target); }
   }
   rest = rest.replace(FILLER, ' ').replace(/\s+/g, ' ').trim();
   if (/^(dad )?(carry me|piggyback|pick me up|shoulders)/.test(rest) || /carry me|piggyback/.test(s)) return S.screen === 'school' ? climbStairs() : say(TXT.school.useDadElse);
@@ -1279,6 +1410,11 @@ function parse(raw) {
       return doVerb('use', h);
     }
     if (it) return say(`Use ${ITEMS[it].name} on what?`); return say(pick(TXT.unknown));
+  }
+  if (verb === 'kick') {
+    const h = findHotspot(rest) || (S.screen === 'street' ? 'leaves' : null);
+    if (S.screen === 'street' && (h === 'leaves' || h === 'street' || h === 'nlawn')) return walkToThen('leaves', () => say(kickLeaves()));
+    return say(h ? pick(TXT.cantUse) : pick(TXT.unknown));
   }
   if (verb === 'eat') return has('candy') ? say(TXT.street.eatCandy) : say("Nothing to eat. Yet.");
   if (verb === 'climb') return doVerb('use', S.screen === 'school' ? 'stairs' : null);
@@ -1296,6 +1432,7 @@ function parse(raw) {
   }
   return doVerb(verb, target);
 }
+function f0() { return S.flags; }
 function findHotspot(noun) {
   if (!noun) return null; noun = noun.replace(/\[cat\]/g, FILL.cat.toLowerCase());
   const H = cur().hotspots;
@@ -1386,6 +1523,8 @@ function lookAt(id) {
     if (id === 'lawn') return S.placed.A ? L.lawnSigned : L.lawn;
     if (id === 'nlawn') return S.placed.B ? L.nlawnSigned : L.nlawn;
     if (id === 'neighbour') return f.pumpkinLit ? L.neighbourLit : L.neighbour;
+    if (id === 'wcat') return f.wcatWaved ? L.wcatWaved : L.wcat;
+    if (id === 'leaves') return !f.mittenSeen ? L.leaves : (has('mitten') || f.mittenBack ? L.leavesEmpty : L.leavesSearched);
   }
   if (S.screen === 'market') {
     if (id === 'grass') return S.placed.D ? L.grassSigned : L.grass;
@@ -1398,15 +1537,17 @@ function lookAt(id) {
       return L.pumpkins;
     }
     if (id === 'candle' && (has('candle') || f.pumpkinLit)) return L.porchNoCandle;
+    if (id === 'squirrel') return f.squirrelFed ? L.squirrelFed : (!f.squirrelHere ? L.squirrelGone : L.squirrel);
   }
   if (S.screen === 'bean') {
-    if (id === 'door') return f.spiderHi ? L.doorClear : L.door;
-    if (id === 'spider') return f.spiderHi ? L.spiderHi : L.spider;
+    if (id === 'door') return has('spider') ? L.doorEmpty : (f.spiderHi ? L.doorClear : L.door);
+    if (id === 'spider') return has('spider') ? L.spiderCarried : (f.spiderHi ? L.spiderHi : L.spider);
     if (id === 'window') return f.inside ? L.windowDad : L.window;
     if (id === 'gus') return f.gusGlasses ? L.gusGlasses : L.gus;
     if (id === 'cat') return f.catMoved ? L.catMoved : L.cat;
     if (id === 'glasses') return f.catMoved && !has('glasses') && !f.gusGlasses ? L.glasses : (f.catMoved ? L.catMoved : L.cat);
     if (id === 'planter') return S.placed.C ? L.planterSigned : L.planter;
+    if (id === 'tot') return f.mittenBack ? L.totWarm : L.tot;
   }
   if (S.screen === 'school') {
     if (id === 'lantern') return f.lit ? L.lanternLit : L.lantern;
@@ -1415,15 +1556,30 @@ function lookAt(id) {
   }
   return L[id] || pick(TXT.unknown);
 }
+function kickLeaves() {
+  const f = S.flags;
+  if (f.mittenSeen) return TXT.street.kickAgain;
+  f.mittenSeen = true; return TXT.street.kickLeaves;
+}
 function takeIt(id) {
   const f = S.flags;
   if (S.screen === 'street' && (id === 'candle' || (id === 'porch' && !has('candle') && !f.pumpkinLit))) { if (has('candle') || f.pumpkinLit) return say(TXT.street.look.porchNoCandle); give('candle'); award('candle', 5); return say(TXT.street.takeCandle); }
   if (S.screen === 'street' && id === 'pumpkin') return say("It's the neighbours' pumpkin, bud. Leave it. But maybe light it?");
+  if (S.screen === 'street' && (id === 'mitten' || (id === 'leaves' && f.mittenSeen && !f.mittenBack))) {
+    if (!f.mittenSeen) return say(TXT.street.look.leaves);
+    if (f.mittenBack) return say(TXT.street.look.leavesEmpty);
+    give('mitten'); return say(TXT.street.takeMitten);
+  }
+  if (S.screen === 'street' && id === 'leaves') return say(kickLeaves());
+  if (S.screen === 'market' && id === 'squirrel') return say(TXT.market.takeSquirrel);
   if (S.screen === 'market' && ['pumpkins', 'hay', 'market'].includes(id)) return say(TXT.market.takeThing);
   if (S.screen === 'market' && id === 'scarecrow') return say("You cannot take a candidate, James. They have commitments.");
   if (S.screen === 'bean' && (id === 'glasses' || (id === 'cat' && f.catMoved && !has('glasses') && !f.gusGlasses))) { if (!f.catMoved) return say(TXT.bean.look.cat); if (has('glasses') || f.gusGlasses) return say(TXT.bean.look.catMoved); give('glasses'); award('glasses', 5); return say(TXT.bean.takeGlasses); }
   if (S.screen === 'bean' && id === 'cat') return say(`${FILL.cat} is not for taking. ${FILL.cat} has made that clear.`);
-  if (S.screen === 'bean' && id === 'spider') return say("You don't take spiders, James. You say hello to them.");
+  if (S.screen === 'bean' && id === 'spider') {
+    if (!f.spiderHi) return say(TXT.bean.takeSpiderEarly);
+    give('spider'); return say(TXT.bean.takeSpider);
+  }
   return say(pick(TXT.cantTake));
 }
 function talkTo(id) {
@@ -1436,12 +1592,24 @@ function talkTo(id) {
   if (S.screen === 'street') {
     if (id === 'neighbour') { if (f.candyGot) return say(St.knockDone); if (!f.pumpkinLit) return say(St.knockDark); f.candyGot = true; f.askedB = true; give('candy'); award('candy', 5); return say(St.knockLit); }
     if (id === 'pumpkin') return say(f.pumpkinLit ? "The pumpkin grins. It's good at that." : "The pumpkin would say something if it were lit. It's not. It's thinking about it.");
+    if (id === 'wcat') return say(St.wcatTalk);
+    if (id === 'leaves') return say(kickLeaves());
   }
   if (S.screen === 'bean') {
     if (id === 'spider') { if (f.spiderHi) return say(B.talkSpiderAgain); f.spiderHi = true; award('spider', 5); return say(B.talkSpider); }
     if (id === 'cat') { if (!f.catMoved) { f.catMoved = true; award('cat', 5); return say(B.talkCat); } if (has('glasses') || f.gusGlasses) return beCat(); return say(B.talkCatAgain); }
     if (id === 'gus') { if (!f.spiderHi) return say(B.doorSpider); f.inside = true; if (f.gusGlasses) return say(f.askedC ? B.talkGusAfter : (f.askedC = true, [B.talkGusAfter, B.talkGusSign])); if (f.talkedGus) return say(B.talkGusBlindAgain); f.talkedGus = true; return say(B.talkGusBlind); }
     if (id === 'door') return say(f.spiderHi ? B.doorBlocked : B.doorSpider);
+    if (id === 'tot') {
+      if (f.mittenBack) return say(B.talkTotWarm);
+      if (f.metTot) return say(B.talkTotAgain);
+      f.metTot = true; return say(B.talkTot);
+    }
+  }
+  if (S.screen === 'market' && id === 'squirrel') {
+    if (!f.squirrelHere) return say(M.look.squirrelGone);
+    if (f.metSquirrel) return say(M.talkSquirrelAgain);
+    f.metSquirrel = true; return say(M.talkSquirrel);
   }
   if (S.screen === 'school') { if (id === 'plaque') return say(lookAt('plaque')); }
   return say(pick(TXT.cantTalk));
@@ -1480,6 +1648,20 @@ const MISSES = {
   'glasses:james': "You put the glasses on. The whole world goes swimmy and enormous. You take them off before you fall over.",
   'glasses:dad': "Dad tries them on. Dad: \"Whoa.\" He takes them off. Dad: \"How does he SEE.\"",
   'glasses:spider': "Eight eyes. One pair of glasses. The maths does not work and the spider knows it.",
+  'spider:cat': `You show ${FILL.cat} the spider. ${FILL.cat} goes from asleep to extremely awake in no time at all, and you move the bucket.`,
+  'spider:gus': "Gus peers into the bucket through the sheet. \"Oh, hello! Is that a friend of yours?\" It is, as it happens.",
+  'spider:window': "You hold the bucket up to the window so the spider can see the espresso machine. It is unmoved. It has seen one.",
+  'spider:scarecrow': "The Scarecrow looks into the bucket for a long moment. \"Now THAT is a constituent.\"",
+  'spider:pumpkin': "You offer the spider a whole lit pumpkin to live in. It does not want a whole lit pumpkin. It wants its door frame.",
+  'spider:tot': "You show the dinosaur the spider. The dinosaur looks into the bucket for a long time. \"That is a good spider,\" says the dinosaur, and that is the correct assessment.",
+  'mitten:dad': "Dad tries the mitten on. It reaches the first knuckle. \"Not mine,\" he says, needlessly.",
+  'mitten:cat': `You put the mitten down in front of ${FILL.cat}, who sits on it immediately, because that is what a cat is for.`,
+  'mitten:gus': "Gus feels the mitten through the sheet. \"Lovely. Far too small for me. Somebody out there is missing that.\"",
+  'mitten:squirrel': "The squirrel looks at the mitten with real interest and you take it back before anything is decided.",
+  'mitten:scarecrow': "Scarecrow: \"A mitten! Warm hands for all. That one is already somebody's though, and I don't take what isn't mine. Put it in the manifesto.\"",
+  'candy:tot': "The dinosaur already has candy and says so, politely, while looking at your candy.",
+  'jar:squirrel': "You hold the jar of flame up. The squirrel leaves the hay bale entirely and watches from one bale further back. Fair.",
+  'glasses:squirrel': "A squirrel in glasses would be a lot. The squirrel agrees and does not cooperate.",
   'glasses:scarecrow': "Scarecrow: \"I have buttons. Very good buttons. But thank you.\"",
 
   'dad:cat': "Dad crouches and offers a knuckle. [cat] sniffs it and allows one chin scratch, which from this cat is a knighthood.",
@@ -1495,7 +1677,16 @@ function useOn(item, id) {
   const f = S.flags, St = TXT.street, B = TXT.bean, C = TXT.school;
   if (item === 'dad') {
     if (S.screen === 'school' && (id === 'stairs' || id === 'tower' || id === 'lantern')) return climbStairs();
+    // SHOW DAD THE SPIDER lands here with the arguments the other way round.
+    if (id === 'spider' && has('spider')) return useOn('spider', 'dad');
     return say(missLine('dad', id) || C.useDadElse);
+  }
+  if (item === 'spider') {
+    if (id === 'dad') {
+      if (f.dadBrave) return say(has('spider') ? B.spiderDadAgainHeld : B.spiderDadAgain);
+      f.dadBrave = true; drop('spider'); award('brave', 5); return say(B.spiderDad);
+    }
+    return say(missLine('spider', id) || B.spiderElse);
   }
   if (!item) { // "use X" with no item
     if (S.screen === 'street' && id === 'pumpkin') return has('candle') ? useOn('candle', 'pumpkin') : say(St.look.pumpkin);
@@ -1516,6 +1707,20 @@ function useOn(item, id) {
     return say(TXT.market.stallsLit);
   }
   if (item === 'jar') { if (S.screen === 'school' && id === 'lantern') { if (!f.upstairs) return say(C.useJarEarly); f.lit = true; drop('jar'); award('lantern', 5); say(C.useJarLantern); f.finalePending = true; return; } return say(missLine('jar', id) || "The flame stays in the jar until it's home."); }
+  if (item === 'mitten') {
+    if (S.screen === 'bean' && id === 'tot') {
+      if (f.mittenBack) return say(B.talkTotWarm);
+      f.mittenBack = true; f.metTot = true; drop('mitten'); give('candy'); award('mitten', 5);
+      return say(B.giveMitten);
+    }
+    return say(missLine('mitten', id) || "It is somebody's mitten. Somebody who is not that.");
+  }
+  if (item === 'candy' && S.screen === 'market' && (id === 'squirrel' || id === 'hay')) {
+    if (!f.squirrelHere) return say(TXT.market.look.squirrelGone);
+    if (f.squirrelFed) return say(TXT.market.look.squirrelFed);
+    f.squirrelFed = true; f.squirrelHere = false; award('squirrel', 5);
+    return say(TXT.market.squirrelCandy);
+  }
   if (item === 'candy') { if (S.screen === 'bean' && id === 'cat') return say(`${FILL.cat} sniffs the candy and gives you a look. Cats don't do candy.`); if (id === 'gus' || id === 'neighbour') return say("That's yours, bud. Keep it."); return say(missLine('candy', id) || St.eatCandy); }
   return say(pick(TXT.cantUse));
 }
