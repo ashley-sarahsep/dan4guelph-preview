@@ -826,14 +826,31 @@
         'allow="fullscreen"></iframe>';
       questFrame.querySelector('.hw-quest__close')
         .addEventListener('click', function () { questFrame.close(); });
+      /* And if focus ever comes back out to the close button - by tabbing, or
+         by the browser putting it there - an arrow key should return it to
+         the game rather than doing nothing. */
+      questFrame.addEventListener('keydown', function (e) {
+        if (e.key && e.key.indexOf('Arrow') === 0) {
+          var f = questFrame.querySelector('.hw-quest__frame');
+          if (f) { try { f.contentWindow.focus(); } catch (err) { f.focus(); } }
+        }
+      });
       questFrame.addEventListener('close', function () {
         var f = questFrame.querySelector('.hw-quest__frame');
         if (f) f.removeAttribute('src');
       });
       document.body.appendChild(questFrame);
     }
-    questFrame.querySelector('.hw-quest__frame').setAttribute('src', 'quest/');
+    var fr = questFrame.querySelector('.hw-quest__frame');
+    fr.setAttribute('src', 'quest/');
     if (typeof questFrame.showModal === 'function') questFrame.showModal();
+    /* showModal() puts focus on the first focusable thing in the dialog,
+       which is the close button - in THIS document, not the game's. So every
+       arrow key went to the campaign page and the game never saw one. Hand
+       focus to the frame once it has loaded. */
+    fr.addEventListener('load', function () {
+      try { fr.contentWindow.focus(); } catch (e) { fr.focus(); }
+    }, { once: true });
   }
 
   function addSpider(hero) {

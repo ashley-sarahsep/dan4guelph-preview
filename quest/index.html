@@ -1236,11 +1236,20 @@ function askDad() {
 const cmd = document.getElementById('cmd');
 function run(line) { if (!line.trim()) return; stirred(); cmd.value = ''; echo(line); parse(line); }
 function echo(line) { cmd.placeholder = '> ' + line; }
-cmd.addEventListener('keydown', e => { if (e.key === 'Enter') { run(cmd.value); e.preventDefault(); } if (e.key === 'Escape') cmd.blur(); e.stopPropagation(); });
+cmd.addEventListener('keydown', e => {
+  // Arrows get out of the text box and reach the game. Typing any letter
+  // focuses this input, so without this the arrows stopped working for good
+  // the moment the player typed one command - and walking matters more here
+  // than moving a caret along a line that is rarely more than four words.
+  if (e.key.startsWith('Arrow')) return;
+  if (e.key === 'Enter') { run(cmd.value); e.preventDefault(); }
+  if (e.key === 'Escape') cmd.blur();
+  e.stopPropagation();
+});
 document.getElementById('askdad').onclick = () => { if (msgOpen) { nextMsg(); return; } echo('ask dad'); askDad(); };
 document.getElementById('bucketbtn').onclick = () => { if (msgOpen) nextMsg(); else bucketOpen = !bucketOpen; };
 window.addEventListener('keydown', e => {
-  if (e.target === cmd) return;
+  if (e.target === cmd && !e.key.startsWith('Arrow')) return;
   if (finaleState && finaleState.stage === 2 && e.key === 'Enter') { S = START(); awarded = {}; finaleState = null; save(); beginIntro(); return; }
   if (msgOpen && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) { nextMsg(); e.preventDefault(); return; }
   if (catPlay && (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ')) { endCat(); e.preventDefault(); return; }
