@@ -926,6 +926,63 @@ function goScreen(name, side) {
 // screen name rather than a list of screens written out by hand: adding the
 // market broke both of the hand-written ones, and lookAround's returned
 // undefined, which say() then tried to call .replace on.
+// What LOOK says. Not a list of hotspots: a look around the place that
+// happens to name everything worth touching, so the player thinks "oh, a
+// candle" rather than reading an index. Each one knows what has already
+// happened, because a scene that describes a dark pumpkin after you have
+// lit it is worse than no scene at all.
+//
+// The rule when adding to these: every hotspot on the screen gets a mention
+// in the prose. If it is not in here, nobody will ever think to try it.
+const SURVEY = {
+  street: f => {
+    const bits = ["Our street, and every porch on it has a pumpkin going except one."];
+    bits.push(has('candle')
+      ? "Our house is behind you, porch light on, and the candle off the step is in your bucket."
+      : f.pumpkinLit
+        ? "Our house is behind you with the porch light on."
+        : "Our house is behind you, porch light on, and there is a stubby candle sitting on the porch step.");
+    bits.push(f.pumpkinLit
+      ? "The neighbours' pumpkin is grinning its head off, and Mrs. Patel is out on her step in a cardigan admiring it."
+      : "The neighbours' house is across the way and their pumpkin is dark, which is the one that is wrong.");
+    bits.push("Our lawn is by the step and theirs is across from it, both of them flat and sign-shaped.");
+    bits.push("A big maple on the corner is letting go of its last leaves all over the road.");
+    return bits.join(' ');
+  },
+  bean: f => {
+    const bits = ["The Bean, warm and yellow in the window, and somebody inside is wearing a bedsheet."];
+    bits.push(f.spiderHi
+      ? "The little spider has moved up to the top corner of the door frame and waves whenever you look at it."
+      : "There is a very small spider sitting right on the door frame, which is why Dad is standing where he is standing.");
+    bits.push(f.catMoved
+      ? (has('glasses') || f.gusGlasses
+          ? "The cat is flopped on the patio table, purring, with nothing underneath her any more."
+          : "The cat has rolled over on the patio table, and there is a pair of round glasses where she was sitting.")
+      : "A cat is sitting on the patio table out front, holding extremely still, the way cats do when they are on top of something.");
+    bits.push("Gus is in the doorway, and there is a planter box of orange mums by the sidewalk with very good soil in it.");
+    return bits.join(' ');
+  },
+  market: f => {
+    const bits = ["The farmers market, all under one long stripy awning. Crates of apples and squash out front, a wall of hay bales, and a heap of pumpkins with one enormous prize-winner on top."];
+    bits.push(f.foundKitten
+      ? "At the back of the stalls, in the dark, a very small cat is asleep in a crate of straw."
+      : "It is properly dark at the back of the stalls, further in than you can see.");
+    bits.push(f.metScarecrow
+      ? "The Scarecrow is standing by the front, looking pleased with himself and his platform."
+      : "A scarecrow is standing by the front with a sign propped against his boot. He does not look like a spooky one.");
+    bits.push("There is a good flat strip of grass along the road, and a hydro pole on the left with wires going off in four directions.");
+    return bits.join(' ');
+  },
+  school: f => {
+    const bits = ["The school on the hill. Grey stone, a clock tower in the middle of it, and a wide flight of stone stairs going up to two big wooden doors."];
+    bits.push(f.lit
+      ? "The Great Pumpkin Lantern is blazing away at the top of the tower and the whole yard has gone orange."
+      : "The Great Pumpkin Lantern sits at the very top of the tower, dark and waiting.");
+    bits.push("There is a little stone post near the bottom of the steps with a bronze plaque on it, and leaves skittering about the yard.");
+    return bits.join(' ');
+  },
+};
+
 function enterText() {
   const t = TXT[S.screen];
   return (S.screen === 'school' && S.flags.lit) ? t.enterLit : t.enter;
@@ -1225,8 +1282,8 @@ function parse(raw) {
   if (!target) {
     if (!rest) {
       if (verb !== 'look') return say(`${verb.charAt(0).toUpperCase() + verb.slice(1)} what?`);
-      const here = thingsHere(), ways = exitsHere(), fresh = notLookedAt();
-      return say([lookAround(), here, fresh, ways].filter(Boolean));
+      const sur = SURVEY[S.screen], fresh = notLookedAt(), ways = exitsHere();
+      return say([sur ? sur(S.flags) : lookAround(), fresh, ways].filter(Boolean));
     }
     return say(pick(TXT.nothingHere));
   }
