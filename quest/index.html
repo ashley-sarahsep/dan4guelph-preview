@@ -1263,24 +1263,28 @@ function centreText(s, y, col, scale) { text(s, (320 - tw(s, scale)) / 2, y, col
 // Centred, at a size of its own, for the title card. The canvas is scaled
 // by PX, so 16 here is 48 real pixels.
 
-// The title card. The art is assets/bg/title.png when it exists; until it
-// does, the DARK school stands in. Not the lit one: that is the last image
-// of the game, and a title card that opens on the ending is a title card
-// that gives the ending away. The words are drawn by the game rather than
-// baked into the image, because the player can rename the hero and a
-// renamed hero should see his own title.
+// The title card. Not a picture of a place: a plain night ground with the
+// lettering on it, and `assets/bg/title.png` over the top when it exists -
+// a cut-out of autumn leaves round the edges, lifted off its green screen
+// the way the sprites are. A full scene here was too much. It fought the
+// lettering, and the stand-in for it was the lit school, which is the last
+// image of the game: a title card that opens on its own ending.
+//
+// The words are drawn rather than baked into the art, because the player
+// can rename the hero from Options and a renamed hero should see his own
+// title.
 let titleUp = false;
 function drawTitle() {
-  const im = bgImgs.title || bgImgs.school || bgImgs.street;
-  if (im) ctx.drawImage(im, 0, 0, 320, 200); else { ctx.fillStyle = EGA[0]; ctx.fillRect(0, 0, 320, 200); }
-  // a scrim, so the lettering holds on any picture that turns up here
-  ctx.fillStyle = 'rgba(0,0,0,0.62)'; ctx.fillRect(0, 54, 320, 92);
-  ctx.fillStyle = EGA[12]; ctx.fillRect(0, 54, 320, 2); ctx.fillRect(0, 144, 320, 2);
-  centreText(renameText("JAMES'S QUEST").toUpperCase(), 62, 14, 3);
-  centreText('The Perils of the Royal City', 96, 11, 1);
-  centreText('A Halloween adventure for one cool kid', 112, 7, 1);
-  centreText('and his dad', 124, 7, 1);
-  if (Math.floor(tick / 12) % 2) centreText('Press Enter to begin', 162, 15, 1);
+  const g = ctx.createLinearGradient(0, 0, 0, 200);
+  g.addColorStop(0, '#0a0612'); g.addColorStop(0.6, '#1a1030'); g.addColorStop(1, '#30193c');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 320, 200);
+  if (bgImgs.title) ctx.drawImage(bgImgs.title, 0, 0, 320, 200);
+  ctx.fillStyle = EGA[12]; ctx.fillRect(46, 58, 228, 1); ctx.fillRect(46, 141, 228, 1);
+  centreText(renameText("JAMES'S QUEST").toUpperCase(), 68, 14, 3);
+  centreText('The Perils of the Royal City', 102, 11, 1);
+  centreText('A Halloween adventure for one cool kid', 120, 7, 1);
+  centreText('and his dad', 132, 7, 1);
+  if (Math.floor(tick / 12) % 2) centreText('Press Enter to begin', 164, 15, 1);
 }
 function wrap(s, maxChars) { const words = s.split(' '), lines = []; let line = ''; for (const w of words) { if ((line + ' ' + w).trim().length > maxChars) { lines.push(line.trim()); line = w; } else line += ' ' + w; } if (line.trim()) lines.push(line.trim()); return lines; }
 
