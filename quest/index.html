@@ -919,9 +919,42 @@ for (const k in SCREENS) { const im = new Image(); im.src = SCREENS[k].bg; im.on
 { const im = new Image(); im.src = 'assets/bg/title.png'; im.onload = () => { bgImgs.title = im; }; im.onerror = () => {}; }
 
 let debug = false, tick = 0, walkTarget = null, keys = {}, msgQueue = [], msgOpen = null, bucketOpen = false, finaleState = null;
-// Which full-screen panel is up, if any: 'help1', 'help2' or 'opts'. One
-// variable rather than a flag each, so the dismiss paths stay one line.
+// Which full-screen panel is up, if any: { k: 'help' | 'opts', pg: 0 }.
+// Pages are worked out from the line count rather than written in, because
+// the bitmap font is taller than the browser one it replaced and every
+// hand-counted page overflowed the moment it went in.
 let panel = null;
+const PANEL_ROWS = 13;
+function panelPages(k) {
+  const L = PANELS[k].lines(), out = [];
+  let page = [], para = [];
+  const flush = () => { if (para.length) { page = page.concat(para); para = []; } };
+  for (const l of L) {
+    para.push(l);
+    if (l !== '') continue;                       // still inside a paragraph
+    if (page.length + para.length > PANEL_ROWS) { // it will not fit: new page
+      while (page.length && page[page.length - 1] === '') page.pop();
+      if (page.length) out.push(page);
+      page = [];
+      while (para.length && para[0] === '') para.shift();
+    }
+    flush();
+  }
+  if (page.length + para.length > PANEL_ROWS) {
+    while (page.length && page[page.length - 1] === '') page.pop();
+    if (page.length) out.push(page); page = [];
+    while (para.length && para[0] === '') para.shift();
+  }
+  flush();
+  while (page.length && page[page.length - 1] === '') page.pop();
+  if (page.length) out.push(page);
+  return out.length ? out : [[]];
+}
+function panelNext() {
+  if (!panel) return;
+  const n = panelPages(panel.k).length;
+  panel = panel.pg + 1 < n ? { k: panel.k, pg: panel.pg + 1 } : null;
+}
 
 // Being the cat. A hidden bonus, and deliberately inert: it unlocks only
 // once the glasses are out from under her, so it can never interfere with
@@ -1189,33 +1222,65 @@ function drawPlaceholder(sc) {
   ctx.fillStyle = EGA[sky]; ctx.fillRect(0, 0, 320, 200);
   ctx.fillStyle = EGA[ground]; ctx.fillRect(0, sc.walk.y0 - 6, 320, 200);
   ctx.fillStyle = EGA[mid]; ctx.fillRect(0, sc.walk.y0 - 30, 320, 26);
-  ctx.fillStyle = EGA[15]; ctx.font = '8px monospace'; ctx.fillText('missing ' + sc.bg, 8, 24);
+  text('missing ' + sc.bg, 8, 24, 15);
 }
-function text(s, x, y, col = 0) { ctx.fillStyle = EGA[col]; ctx.font = '8px monospace'; ctx.textBaseline = 'top'; ctx.fillText(s, x, y); }
+// ---------------------------------------------------------------- FONT
+// A real 1-bit bitmap font, 6x10, built by scenes/font.py from Liberation
+// Mono Bold and pasted in here as base64. The game used to draw its text
+// with the browser's `monospace`, which the canvas then scaled 3x: smooth,
+// anti-aliased and the one thing on screen that did not look like 1988.
+// Every glyph here is a grid of bits drawn as solid pixels, so the letters
+// are as crunchy as the backgrounds.
+//
+// 6 wide keeps roughly the line lengths the boxes were tuned for and 10
+// tall is exactly the line spacing the message box already used. Codes 32
+// to 126; anything else draws as a space.
+const FW = 6, FH = 10, FFIRST = 32;
+const FONT = (() => { const b = atob('AAAAAAAAAAAAAAAYCAgIABgYAAA0NDQAAAAAAAAAABIUPgQ+ICgAAAg8LjgcDi48CAAAMhQcPh0lJgAAABw0GDouLj8AAAgICAAAAAAAAAAMCBgYEBAYGAgMGBgIDAwMDAgYGAg8HBwUAAAAAAAAAAgIPhgIAAAAAAAAAAAAGBAwAAAAAAAcAAAAAAAAAAAAAAAYGAAAAgQMCBgQMCAAAAAcNiYuJjYcAAAAGDgICAgMPgAAABw2BgwYMD4AAAA8NgYcBjY8AAAADBwUJD4EBAAAAD4wPDYGNjwAAAAcNiA8NjYcAAAAPgYMCBgYEAAAADw2NjwmJjwAAAA8NjY+BjY8AAAAABgYAAAYGAAAAAAICAAAGBgQAAAABjwwPAYAAAAAAAA+AD4AAAAAAAAgPgY+IAAAAAA8NgYYABgYAAAcIj4UJCYeACAcABgcPDQ+JiIAAAA8NiY8NjY+AAAAHDYgICA2HAAAADwmJiYmNjwAAAA+MDA+IDA+AAAAPjAwPjAwMAAAABw2IC4mNhwAAAAmJjY+JiYmAAAAPhgYGBgYPgAAAB4GBgYGPDwAAAAmLDw4PCYmAAAAMDAwMDAwPgAAADY2Pj4qIiIAAAA2Nj4+Li4mAAAAHDYmIiY2HAAAADw2JjY8ICAAAAAcNiYiJjYcDA4APDYmPDwmJgAAADwmMB4GJjwAAAA+GBgYGBgYAAAAJiYmJiY2HAAAACImNjQcHBgAAAAjIio+PjY2AAAAJjQcGBw2IgAAACImNBwYGBgAAAA+BgwYMDA+AAAcGBgYGBgYGBgcIDAQGAgMBAIAADwMDAwMDAwMDDwAGBw0JiIAAAAAAAAAAAAAAAAAPwgAAAAAAAAAAAAAADwEPiYuPgAAICA8NiYmNjwAAAAAHDYgIDYcAAAGBj42JiY2PgAAAAAcJj4gNhwAAB4YPhgYGBgYAAAAAB42JiY2PgY8ICA8NiYmJiYAAAgAOAgICAg+AAAMADwMDAwMDAw4MDA2PDg8NDYAADgICAgICAgOAAAAAD4qKioqKgAAAAAsNiYmJiYAAAAAHDYmJjYcAAAAADw2JiY2PCAgAAA+NiYmNj4GBgAAPjgwMDAwAAAAADwgOA4GPAAAEBA8EBAQEB4AAAAAJiYmJjY+AAAAACImNjQcGAAAAAADKjo+NjYAAAAAJjwYHDQmAAAAACImNhQcGBgwAAA+DAgYMD4AAA4YGBgwGBgYGA4ICAgICAgICAgIOAgIDAYMCAgIOAAAADgOAAAAAAA='); const a = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; })();
+function tw(s, scale) { return s.length * FW * (scale || 1); }
+function text(s, x, y, col = 0, scale) {
+  const k = scale || 1;
+  ctx.fillStyle = EGA[col];
+  x = Math.round(x); y = Math.round(y);
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i) - FFIRST;
+    if (c < 0 || c > 94) continue;
+    const base = c * FH, gx = x + i * FW * k;
+    for (let row = 0; row < FH; row++) {
+      const bits = FONT[base + row];
+      if (!bits) continue;
+      // one fillRect per run of set bits, rather than one per pixel
+      let run = 0;
+      for (let col2 = 0; col2 <= FW; col2++) {
+        const on = col2 < FW && (bits & (1 << (FW - 1 - col2)));
+        if (on) { run++; continue; }
+        if (run) { ctx.fillRect(gx + (col2 - run) * k, y + row * k, run * k, k); run = 0; }
+      }
+    }
+  }
+}
+function centreText(s, y, col, scale) { text(s, (320 - tw(s, scale)) / 2, y, col, scale); }
 // Centred, at a size of its own, for the title card. The canvas is scaled
 // by PX, so 16 here is 48 real pixels.
-function bigText(s, y, col, size, weight) {
-  ctx.fillStyle = EGA[col]; ctx.font = `${weight || 'bold'} ${size}px monospace`; ctx.textBaseline = 'top';
-  ctx.fillText(s, (320 - ctx.measureText(s).width) / 2, y);
-  ctx.font = '8px monospace';
-}
+
 // The title card. The art is assets/bg/title.png when it exists; until it
-// does, the lit school stands in, which is the thing the whole game is
-// about and is at least the right picture. Either way the words are drawn
-// by the game rather than baked into the image, because the player can
-// rename the hero and because a renamed hero should see his own title.
+// does, the DARK school stands in. Not the lit one: that is the last image
+// of the game, and a title card that opens on the ending is a title card
+// that gives the ending away. The words are drawn by the game rather than
+// baked into the image, because the player can rename the hero and a
+// renamed hero should see his own title.
 let titleUp = false;
 function drawTitle() {
-  const im = bgImgs.title || bgImgs.school_lit || bgImgs.school;
+  const im = bgImgs.title || bgImgs.school || bgImgs.street;
   if (im) ctx.drawImage(im, 0, 0, 320, 200); else { ctx.fillStyle = EGA[0]; ctx.fillRect(0, 0, 320, 200); }
   // a scrim, so the lettering holds on any picture that turns up here
   ctx.fillStyle = 'rgba(0,0,0,0.62)'; ctx.fillRect(0, 54, 320, 92);
   ctx.fillStyle = EGA[12]; ctx.fillRect(0, 54, 320, 2); ctx.fillRect(0, 144, 320, 2);
-  bigText(renameText("JAMES'S QUEST").toUpperCase(), 64, 14, 20);
-  bigText('The Perils of the Royal City', 92, 11, 10, '');
-  bigText('A Halloween adventure for one small person', 108, 15, 7, '');
-  bigText('and his dad', 120, 15, 7, '');
-  if (Math.floor(tick / 12) % 2) bigText('Press Enter to begin', 160, 15, 9, '');
+  centreText(renameText("JAMES'S QUEST").toUpperCase(), 62, 14, 3);
+  centreText('The Perils of the Royal City', 96, 11, 1);
+  centreText('A Halloween adventure for one cool kid', 112, 7, 1);
+  centreText('and his dad', 124, 7, 1);
+  if (Math.floor(tick / 12) % 2) centreText('Press Enter to begin', 162, 15, 1);
 }
 function wrap(s, maxChars) { const words = s.split(' '), lines = []; let line = ''; for (const w of words) { if ((line + ' ' + w).trim().length > maxChars) { lines.push(line.trim()); line = w; } else line += ' ' + w; } if (line.trim()) lines.push(line.trim()); return lines; }
 
@@ -1305,11 +1370,10 @@ function drawMsg(m) {
   // box was mostly empty. PAD is the text inset on each side and ARROW
   // reserves the corner the blinking more-text marker sits in.
   const w = 296, PAD = 8, ARROW = 16, x = 12;
-  ctx.font = '8px monospace';
-  const cols = Math.max(20, Math.floor((w - PAD * 2 - ARROW) / (ctx.measureText('M').width || 4.8)));
-  const lines = wrap(m, cols); const h = lines.length * 10 + 16;
+  const cols = Math.max(20, Math.floor((w - PAD * 2 - ARROW) / FW));
+  const lines = wrap(m, cols); const h = lines.length * 11 + 16;
   const y = Math.max(14, 100 - h / 2);
-  box(x, y, w, h); lines.forEach((l, i) => text(l, x + PAD, y + 8 + i * 10, 0));
+  box(x, y, w, h); lines.forEach((l, i) => text(l, x + PAD, y + 8 + i * 11, 0));
   if (Math.floor(tick / 15) % 2) text('▼', x + w - 14, y + h - 10, 8);
 }
 // ---------------------------------------------------------------- PANELS
@@ -1318,62 +1382,48 @@ function drawMsg(m) {
 // look like the rest of the game, and dismissed the same way a message box
 // is: Enter, Escape or a click.
 const PANELS = {
-  help1: {
-    title: 'HOW TO PLAY  (1 of 2)',
+  help: {
+    title: 'HOW TO PLAY',
     lines: () => [
-      'Type what you want to do, in your own words. You',
-      'do not have to get it exactly right.',
+      'Type what you want to do, in your own',
+      'words. You do not have to get it exactly',
+      'right, and spelling can be wobbly.',
       '',
-      '  LOOK                 see where you are',
-      '  LOOK AT THE PUMPKIN  look at one thing',
-      '  TAKE THE CANDLE      put it in your bucket',
-      '  TALK TO GUS          say hello to somebody',
+      '  LOOK              see where you are',
+      '  LOOK AT PUMPKIN   look at one thing',
+      '  TAKE THE CANDLE   put it in the bucket',
+      '  TALK TO GUS       say hello',
       '  USE CANDLE ON PUMPKIN',
       '  PLACE SIGN ON OUR LAWN',
-      '  BUCKET               see what you are carrying',
+      '  BUCKET            what you are carrying',
       '',
-      'Other words work just as well. GRAB, PICK UP and',
-      'GET all take. EXAMINE, CHECK and READ all look.',
-      'PET, SAY HI TO and CHAT all talk. PUT, GIVE and',
-      'LIGHT are all ways of using. GIVE DAD THE SPIDER',
-      'works as well as USE SPIDER ON DAD. Spelling is',
-      'allowed to be wobbly.',
+      'Hold the LEFT and RIGHT arrow keys to',
+      'walk, and walk off the side of the screen',
+      'to go somewhere new. Enter gets you past a',
+      'box of writing.',
       '',
-      'Hold the LEFT and RIGHT arrow keys to walk, and',
-      'walk off the side of the screen to go somewhere',
-      'new. Press Enter to get past a box of writing.',
+      'Stuck? Type ASK DAD. He gives a nudge, and',
+      'a bigger one if you ask again. GOAL says',
+      'what you came out for. SCORE says how you',
+      'are doing.',
       '',
-      'Stuck? Type ASK DAD. He gives you a nudge, and a',
-      'bigger one if you ask him again.',
-    ],
-  },
-  help2: {
-    title: 'THINGS WORTH TRYING  (2 of 2)',
-    lines: () => [
-      'Nobody can die in this game and nothing can go',
-      'wrong, so try the silly thing. Some of them talk',
-      'back.',
+      'Other words work too. GRAB and PICK UP',
+      'take, EXAMINE and READ look, PET and SAY',
+      'HI TO talk, PUT and LIGHT use. GIVE DAD',
+      'THE SPIDER is the same as USE SPIDER ON',
+      'DAD. USE CANDY on its own works when only',
+      'one thing here makes sense.',
       '',
-      '  JUMP   SING   DANCE   SPIN   SHOUT   BURP',
-      '  HUG DAD   SMELL   LISTEN   HIDE   FLY   WAVE',
+      'Nothing can go wrong and nobody can die,',
+      'so try the silly thing. JUMP, SING, DANCE,',
+      'SPIN, SHOUT, BURP, HUG DAD, SMELL, LISTEN,',
+      'HIDE, FLY, WAVE. Aim them, too: SHOUT AT',
+      'THE SQUIRREL does what SHOUT does not.',
       '',
-      'Most of those can be aimed at something, and a',
-      'few of them matter: SHOUT AT THE SQUIRREL does',
-      'something SHOUT on its own does not, and so does',
-      'WAVE AT THE CAT.',
-      '',
-      'USE CANDY on its own works when there is only',
-      'one sensible thing to use it on. Otherwise the',
-      'game will tell you what is here.',
-      '',
-      'Try the wrong thing on the wrong thing. A lot of',
-      'those have an answer written for them, and',
-      'finding one is the joke.',
-      '',
-      'There are nine secrets nobody tells you about.',
-      'Your score goes up when you find one. Type SCORE',
-      'to see how you are doing, or GOAL if you have',
-      'forgotten what you came out for.',
+      'Try the wrong thing on the wrong thing. A',
+      'lot of those have an answer written for',
+      'them. And nine secrets are hidden in here',
+      'that nobody tells you about.',
       '',
       'SAVE and RESTORE work. So does RESTART.',
     ],
@@ -1381,34 +1431,35 @@ const PANELS = {
   opts: {
     title: 'OPTIONS',
     lines: () => [
-      'You can rename anybody. Type the command on the',
-      'line at the bottom, then press Enter.',
+      'You can rename anybody. Type the command',
+      'on the line at the bottom, then Enter.',
       '',
       nrow('NAME ME <new name>', nm('hero')),
       nrow('NAME DAD <new name>', nm('dad')),
       nrow('NAME CAT <new name>', nm('cat')),
       '',
-      'So NAME CAT Mittens, and she is Mittens from then',
-      'on, everywhere. NAMES on its own puts all three',
-      'back to how they started.',
+      'So NAME CAT Mittens, and she is Mittens',
+      'from then on, everywhere. NAMES on its own',
+      'puts all three back to how they started.',
       '',
-      'The CRT button at the top right of the page turns',
-      'the old monitor look on and off.',
+      'The CRT button at the top right of the',
+      'page turns the old monitor look on and off.',
       '',
-      'The game saves itself as you go, on this computer',
-      'only. Type RESTART to start again from the top.',
+      'The game saves itself as you go, on this',
+      'computer only. Type RESTART to start again',
+      'from the top.',
     ],
   },
 };
-// Two columns: what to type, and what the name is at the moment. The panel
-// is 59 characters wide at this font, so 30 leaves room for both.
-function nrow(cmd, cur) { return '  ' + cmd.padEnd(30) + 'now: ' + cur; }
+function nrow(cmd, cur) { return '  ' + cmd.padEnd(24) + 'now: ' + cur; }
 function drawPanel() {
-  const P = PANELS[panel]; if (!P) return;
+  const P = PANELS[panel.k]; if (!P) return;
+  const pages = panelPages(panel.k), page = pages[panel.pg] || [];
   box(8, 14, 304, 176);
-  text(P.title, 18, 22, 4);
-  P.lines().forEach((l, i) => text(l, 18, 36 + i * 9, l.startsWith('  ') ? 1 : 0));
-  text(panel === 'help1' ? 'Enter for more' : 'Enter to close', 18, 178, 8);
+  const head = pages.length > 1 ? `${P.title}  (${panel.pg + 1} of ${pages.length})` : P.title;
+  text(head, 14, 20, 4);
+  page.forEach((l, i) => text(l, 14, 36 + i * 10, l.startsWith('  ') ? 1 : 0));
+  text(panel.pg + 1 < pages.length ? 'Enter for more' : 'Enter to close', 14, 176, 8);
 }
 function drawBucket() {
   // ICON_X is the centre of the icon column and LABEL_X where the text
@@ -1421,7 +1472,7 @@ function drawBucket() {
   for (const it of items) { const spr = ITEMS[it].spr; if (spr) drawSprite(SPR[spr], 0, ICON_X, y + 10); text(ITEMS[it].name, LABEL_X, y + 1, 0); y += 16; }
   if (S.signs > 0) { drawSprite(SPR.sign, 0, ICON_X, y + 12); text(TXT.signsLeft(S.signs), LABEL_X, y + 1, 0); y += 16; }
   drawSprite(SPR.dadicon, 0, ICON_X, y + 10); text('Dad (type USE DAD ON STAIRS)', LABEL_X, y + 1, 0); y += 16;
-  text('LOOK AT any of these. Enter closes the bucket.', 40, 152, 8);
+  text('LOOK AT any of these. Enter closes it.', 40, 152, 8);
 }
 
 // Looking at something you are carrying is its own small scene. Every one
@@ -1479,7 +1530,7 @@ function drawFinale() {
   ctx.fillStyle = EGA[0]; ctx.fillRect(0, 0, 320, 200);
   const lines = TXT.credits(S.score, Object.keys(S.placed).length);
   const yOff = 200 - f.t * 0.5;
-  lines.forEach((l, i) => { const y = yOff + i * 12; if (y > -10 && y < 210) { const col = i < 2 ? 14 : 15; ctx.fillStyle = EGA[col]; ctx.font = '8px monospace'; ctx.textBaseline = 'top'; const w = ctx.measureText(l).width; ctx.fillText(l, 160 - w / 2, y); } });
+  lines.forEach((l, i) => { const y = yOff + i * 12; if (y > -10 && y < 210) centreText(l, y, i < 2 ? 14 : 15); });
   if (yOff + lines.length * 12 < 100) f.t -= 0.5; // hold at end
 }
 
@@ -1643,8 +1694,8 @@ function parse(raw) {
   if (!s) return;
   // sign and dad first (multi-word)
   if (VERBS.sign.some(v => s.startsWith(v)) || (s.includes('sign') && /(place|put|plant)/.test(s))) { const rest = s.replace(/.*sign( on| in| at)?/, '').replace(FILLER, ' ').trim(); return placeSign(findHotspot(rest)); }
-  if (/^(help|how do i play|how do you play|instructions|controls)$/.test(s)) { panel = 'help1'; return; }
-  if (/^(options|option|settings)$/.test(s)) { panel = 'opts'; return; }
+  if (/^(help|how do i play|how do you play|instructions|controls)$/.test(s)) { panel = { k: 'help', pg: 0 }; return; }
+  if (/^(options|option|settings)$/.test(s)) { panel = { k: 'opts', pg: 0 }; return; }
   if (/^(goal|quest|mission|task|objective|why|what (are we|am i) doing|what('| i)s the (plan|point)|remind me)$/.test(s)) {
     const f = S.flags;
     return say(f.lit
@@ -2270,7 +2321,7 @@ cmd.addEventListener('keydown', e => {
   if (titleUp && (e.key === 'Enter' || e.key === ' ')) { titleUp = false; e.preventDefault(); e.stopPropagation(); return; }
   if (e.key === 'Enter') {
     if ((panel || bucketOpen) && cmd.value.trim()) { panel = null; bucketOpen = false; run(cmd.value); e.preventDefault(); e.stopPropagation(); return; }
-    if (panel) { panel = panel === 'help1' ? 'help2' : null; e.preventDefault(); e.stopPropagation(); return; }
+    if (panel) { panelNext(); e.preventDefault(); e.stopPropagation(); return; }
     if (bucketOpen) { bucketOpen = false; e.preventDefault(); e.stopPropagation(); return; }
     if (msgOpen) { nextMsg(); e.preventDefault(); e.stopPropagation(); return; }
     run(cmd.value); e.preventDefault();
@@ -2284,7 +2335,8 @@ window.addEventListener('keydown', e => {
   if (titleUp) { titleUp = false; e.preventDefault(); return; }
   if (finaleState && finaleState.stage === 2 && e.key === 'Enter') { S = START(); awarded = {}; finaleState = null; save(); beginIntro(); return; }
   if (panel && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) {
-    panel = (e.key === 'Enter' && panel === 'help1') ? 'help2' : null; e.preventDefault(); return;
+    if (e.key === 'Escape') panel = null; else panelNext();
+    e.preventDefault(); return;
   }
   if (bucketOpen && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) { bucketOpen = false; e.preventDefault(); return; }
   if (msgOpen && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) { nextMsg(); e.preventDefault(); return; }
@@ -2357,7 +2409,7 @@ function onTap(e) {
   e.preventDefault(); const p = canvasPoint(e);
   if (titleUp) { titleUp = false; return; }
   if (finaleState) { if (finaleState.stage === 2) { S = START(); awarded = {}; finaleState = null; save(); beginIntro(); } else if (msgOpen) nextMsg(); return; }
-  if (panel) { panel = panel === 'help1' ? 'help2' : null; return; }
+  if (panel) { panelNext(); return; }
   if (msgOpen) { nextMsg(); return; }
   if (endCat()) return;
   if (bucketOpen) { bucketOpen = false; return; }
@@ -2375,8 +2427,8 @@ cv.addEventListener('mousedown', onTap); cv.addEventListener('touchstart', onTap
 // The two bottom-bar buttons. They open a panel and hand focus straight
 // back to the command line, so a player who was typing is not stranded.
 document.getElementById('bucketbtn').onclick = () => { bucketOpen = !bucketOpen; panel = null; cmd.focus(); };
-document.getElementById('helpbtn').onclick = () => { panel = 'help1'; cmd.focus(); };
-document.getElementById('optbtn').onclick = () => { panel = 'opts'; cmd.focus(); };
+document.getElementById('helpbtn').onclick = () => { panel = { k: 'help', pg: 0 }; cmd.focus(); };
+document.getElementById('optbtn').onclick = () => { panel = { k: 'opts', pg: 0 }; cmd.focus(); };
 document.getElementById('crtbtn').onclick = () => { const m = document.getElementById('monitor'); m.classList.toggle('crt'); document.getElementById('crtbtn').textContent = 'CRT: ' + (m.classList.contains('crt') ? 'on' : 'off'); fit(); };
 function fit() {
   const stage = document.getElementById('stage'); const crt = document.getElementById('monitor').classList.contains('crt');
