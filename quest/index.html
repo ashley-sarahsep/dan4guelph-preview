@@ -40,8 +40,9 @@
       <canvas id="game" width="960" height="600"></canvas>
       <div id="crtfx"></div>
       <div id="cmdrow">
-        <input id="cmd" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="arrow keys to walk, tap a thing, or type">
+        <input id="cmd" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="arrows to walk, point at things, or type">
         <button class="btn" id="askdad">Ask Dad</button>
+        <button class="btn" id="showbtn">Show things</button>
         <button class="btn" id="bucketbtn">Bucket</button>
       </div>
     </div>
@@ -504,7 +505,8 @@ const TXT = {
     "Tonight it hasn't lit. Dad looked out the window and said \"huh\". Then he said \"hm\". Then he got his shoes on.",
     "So. James. [costume] on. Bucket in hand. Dad beside you with a bundle of his signs under one arm, because he's running for school trustee and signs don't put up themselves.",
     "Let's go find out what happened to that lantern.",
-    "Arrow keys to walk about. Tap anything in the picture to look at it or use it. And if you ever get stuck, press ASK DAD. He loves being asked."
+    "Arrow keys to walk about. Point at something and it will tell you what it is, then click it to look at it or use it.",
+    "Press SHOW THINGS to see everything you can touch on a screen. And if you ever get stuck, press ASK DAD. He loves being asked."
   ],
   unknown: [
     "Hm. Hmmmm. Not sure what you mean, bud.",
@@ -769,6 +771,15 @@ let debug = false, tick = 0, walkTarget = null, keys = {}, msgQueue = [], msgOpe
 // another screen as a cat with no way back.
 let catPlay = null;
 
+// What the pointer is over, and whether the player has asked to see
+// everything at once. Making objects bigger has a ceiling: a candle on a
+// porch step is a candle, and past a certain size it stops being scenery.
+// The real problem is that nothing says an object can be touched. Sierra
+// solved it with a status line naming whatever was under the cursor, and
+// that is what this is, plus a button that rings all of them for a player
+// who does not know to sweep the mouse about.
+let hoverId = null, showAll = false;
+
 const IDLE_NUDGE = 375;
 let idleTicks = 0;
 function stirred() { idleTicks = 0; }
@@ -893,6 +904,36 @@ function drawImgSprite(im, frame, x, y, flip) {
   if (frame) { ctx.drawImage(im, 0, (h - 2) * PX, w * PX, 2 * PX, left, top + h - 2 - bob, w, 2 + bob); }
   ctx.restore();
 }
+// A bracket in each corner rather than a full box: it reads as "this is a
+// thing" without drawing a rectangle over the painting. The hovered one gets
+// a name above it, which is the part that actually teaches.
+function corners(h, col, len) {
+  const x0 = h.x, y0 = h.y, x1 = h.x + h.w, y1 = h.y + h.h;
+  const L = Math.max(3, Math.min(len, Math.min(h.w, h.h) / 2));
+  ctx.fillStyle = EGA[col];
+  const seg = (x, y, w, hh) => ctx.fillRect(x, y, w, hh);
+  seg(x0, y0, L, 1); seg(x0, y0, 1, L);
+  seg(x1 - L, y0, L, 1); seg(x1 - 1, y0, 1, L);
+  seg(x0, y1 - 1, L, 1); seg(x0, y1 - L, 1, L);
+  seg(x1 - L, y1 - 1, L, 1); seg(x1 - 1, y1 - L, 1, L);
+}
+function drawHighlights() {
+  const H = cur().hotspots;
+  const skip = { street: 1, plaza: 1 };
+  if (showAll) {
+    const pulse = Math.floor(tick / 5) % 2 ? 15 : 14;
+    for (const id in H) if (!skip[id] && live(H[id], id)) corners(H[id], pulse, 5);
+  }
+  const h = hoverId && H[hoverId];
+  if (!h || !live(h, hoverId)) return;
+  corners(h, 15, 6);
+  const label = h.name;
+  const w = label.length * 5 + 8, x = Math.max(2, Math.min(320 - w - 2, h.x + h.w / 2 - w / 2));
+  const y = Math.max(12, h.y - 12);
+  ctx.fillStyle = EGA[0]; ctx.fillRect(x, y, w, 10);
+  ctx.fillStyle = EGA[15]; ctx.fillRect(x, y, w, 1); ctx.fillRect(x, y + 9, w, 1);
+  text(label, x + 4, y + 1, 15);
+}
 function drawPlaceholder(sc) {
   const [sky, ground, mid] = sc.placeholder;
   ctx.fillStyle = EGA[sky]; ctx.fillRect(0, 0, 320, 200);
@@ -947,6 +988,7 @@ function render() {
   const df = dmoving ? (Math.floor(dadStep / 6) % 2 ? 1 : 2) : 0;
   draws.push({ y: dadY, f: () => drawSprite(SPR.dad, df, dadX, dadY, dadFacing < 0) });
   draws.sort((a, b) => a.y - b.y).forEach(d => d.f());
+  if (!finaleState && !bucketOpen && !msgOpen) drawHighlights();
 
   // status bar
   ctx.fillStyle = EGA[15]; ctx.fillRect(0, 0, 320, 10);
@@ -1337,6 +1379,19 @@ function onTap(e) {
   // him somewhere - that is walkToThen and it is untouched.
 }
 cv.addEventListener('mousedown', onTap); cv.addEventListener('touchstart', onTap, { passive: false });
+cv.addEventListener('mousemove', e => {
+  if (msgOpen || bucketOpen || verbCoin || finaleState || catPlay) { hoverId = null; return; }
+  const p = canvasPoint(e);
+  const id = hitHotspot(p);
+  hoverId = (id && id !== 'street' && id !== 'plaza') ? id : null;
+  cv.style.cursor = hoverId ? 'pointer' : 'default';
+});
+cv.addEventListener('mouseleave', () => { hoverId = null; cv.style.cursor = 'default'; });
+document.getElementById('showbtn').onclick = () => {
+  if (msgOpen) { nextMsg(); return; }
+  showAll = !showAll;
+  document.getElementById('showbtn').textContent = showAll ? 'Hide things' : 'Show things';
+};
 
 document.getElementById('crtbtn').onclick = () => { const m = document.getElementById('monitor'); m.classList.toggle('crt'); document.getElementById('crtbtn').textContent = 'CRT: ' + (m.classList.contains('crt') ? 'on' : 'off'); fit(); };
 function fit() {
