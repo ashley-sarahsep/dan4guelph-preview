@@ -40,10 +40,7 @@
       <canvas id="game" width="960" height="600"></canvas>
       <div id="crtfx"></div>
       <div id="cmdrow">
-        <input id="cmd" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="arrows to walk, point at things, or type">
-        <button class="btn" id="askdad">Ask Dad</button>
-        <button class="btn" id="showbtn">Show things</button>
-        <button class="btn" id="bucketbtn">Bucket</button>
+        <input id="cmd" autofocus autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="type LOOK to see what is here, or ASK DAD if you are stuck">
       </div>
     </div>
     <div id="powerlight"></div>
@@ -505,8 +502,9 @@ const TXT = {
     "Tonight it hasn't lit. Dad looked out the window and said \"huh\". Then he said \"hm\". Then he got his shoes on.",
     "So. James. [costume] on. Bucket in hand. Dad beside you with a bundle of his signs under one arm, because he's running for school trustee and signs don't put up themselves.",
     "Let's go find out what happened to that lantern.",
-    "Arrow keys to walk about. Point at something and it will tell you what it is, then click it to look at it or use it.",
-    "Press SHOW THINGS to see everything you can touch on a screen. And if you ever get stuck, press ASK DAD. He loves being asked."
+    "Arrow keys to walk about. Everything else you type.",
+    "Type LOOK to see what is here. Then LOOK AT THE CANDLE, or TAKE THE CANDLE, or USE THE CANDLE ON THE PUMPKIN. Type BUCKET to see what you are carrying.",
+    "And if you ever get stuck, type ASK DAD. He loves being asked."
   ],
   unknown: [
     "Hm. Hmmmm. Not sure what you mean, bud.",
@@ -657,7 +655,7 @@ const TXT = {
 
   // SCHOOL
   school: {
-    enter: "The school on the hill. The Great Pumpkin Lantern sits at the very top of the bell tower. Dark.",
+    enter: "The school on the hill. The Great Pumpkin Lantern sits at the very top of the clock tower. Dark.",
     enterLit: "The school on the hill. The Great Pumpkin Lantern blazes at the top. The whole yard is orange.",
     look: {
       school: "The big stone school. It has been up here longer than anyone's grandparents. Dad went here. So did his dad.",
@@ -755,7 +753,7 @@ for (const k in SCREENS) { const im = new Image(); im.src = SCREENS[k].bg; im.on
 // old treatment instead of breaking the ending.
 { const im = new Image(); im.src = 'assets/bg/school_lit.png'; im.onload = () => { bgImgs.school_lit = im; }; im.onerror = () => {}; }
 
-let debug = false, tick = 0, walkTarget = null, keys = {}, msgQueue = [], msgOpen = null, verbCoin = null, bucketOpen = false, selectedItem = null, finaleState = null;
+let debug = false, tick = 0, walkTarget = null, keys = {}, msgQueue = [], msgOpen = null, bucketOpen = false, finaleState = null;
 
 // Ticks of nothing happening before Dad offers a hint unasked. 15fps, so
 // this is about twenty-five seconds. A six year old does not know that the
@@ -770,15 +768,6 @@ let debug = false, tick = 0, walkTarget = null, keys = {}, msgQueue = [], msgOpe
 // world. Exits are blocked while it runs, so there is no way to end up on
 // another screen as a cat with no way back.
 let catPlay = null;
-
-// What the pointer is over, and whether the player has asked to see
-// everything at once. Making objects bigger has a ceiling: a candle on a
-// porch step is a candle, and past a certain size it stops being scenery.
-// The real problem is that nothing says an object can be touched. Sierra
-// solved it with a status line naming whatever was under the cursor, and
-// that is what this is, plus a button that rings all of them for a player
-// who does not know to sweep the mouse about.
-let hoverId = null, showAll = false;
 
 const IDLE_NUDGE = 375;
 let idleTicks = 0;
@@ -822,7 +811,7 @@ function clampWalk(x, y) { const w = cur().walk; return [Math.max(6, Math.min(31
 function update() {
   tick++;
   if (S.flags.finalePending && !msgOpen && !msgQueue.length && !finaleState) { S.flags.finalePending = false; S.done = true; startFinale(); }
-  if (msgOpen || bucketOpen || verbCoin || finaleState) { idleTicks = 0; return; }
+  if (msgOpen || bucketOpen || finaleState) { idleTicks = 0; return; }
   if (catPlay) {
     idleTicks = 0;
     let cx = 0, cy = 0;
@@ -904,36 +893,6 @@ function drawImgSprite(im, frame, x, y, flip) {
   if (frame) { ctx.drawImage(im, 0, (h - 2) * PX, w * PX, 2 * PX, left, top + h - 2 - bob, w, 2 + bob); }
   ctx.restore();
 }
-// A bracket in each corner rather than a full box: it reads as "this is a
-// thing" without drawing a rectangle over the painting. The hovered one gets
-// a name above it, which is the part that actually teaches.
-function corners(h, col, len) {
-  const x0 = h.x, y0 = h.y, x1 = h.x + h.w, y1 = h.y + h.h;
-  const L = Math.max(3, Math.min(len, Math.min(h.w, h.h) / 2));
-  ctx.fillStyle = EGA[col];
-  const seg = (x, y, w, hh) => ctx.fillRect(x, y, w, hh);
-  seg(x0, y0, L, 1); seg(x0, y0, 1, L);
-  seg(x1 - L, y0, L, 1); seg(x1 - 1, y0, 1, L);
-  seg(x0, y1 - 1, L, 1); seg(x0, y1 - L, 1, L);
-  seg(x1 - L, y1 - 1, L, 1); seg(x1 - 1, y1 - L, 1, L);
-}
-function drawHighlights() {
-  const H = cur().hotspots;
-  const skip = { street: 1, plaza: 1 };
-  if (showAll) {
-    const pulse = Math.floor(tick / 5) % 2 ? 15 : 14;
-    for (const id in H) if (!skip[id] && live(H[id], id)) corners(H[id], pulse, 5);
-  }
-  const h = hoverId && H[hoverId];
-  if (!h || !live(h, hoverId)) return;
-  corners(h, 15, 6);
-  const label = h.name;
-  const w = label.length * 5 + 8, x = Math.max(2, Math.min(320 - w - 2, h.x + h.w / 2 - w / 2));
-  const y = Math.max(12, h.y - 12);
-  ctx.fillStyle = EGA[0]; ctx.fillRect(x, y, w, 10);
-  ctx.fillStyle = EGA[15]; ctx.fillRect(x, y, w, 1); ctx.fillRect(x, y + 9, w, 1);
-  text(label, x + 4, y + 1, 15);
-}
 function drawPlaceholder(sc) {
   const [sky, ground, mid] = sc.placeholder;
   ctx.fillStyle = EGA[sky]; ctx.fillRect(0, 0, 320, 200);
@@ -988,18 +947,15 @@ function render() {
   const df = dmoving ? (Math.floor(dadStep / 6) % 2 ? 1 : 2) : 0;
   draws.push({ y: dadY, f: () => drawSprite(SPR.dad, df, dadX, dadY, dadFacing < 0) });
   draws.sort((a, b) => a.y - b.y).forEach(d => d.f());
-  if (!finaleState && !bucketOpen && !msgOpen) drawHighlights();
 
   // status bar
   ctx.fillStyle = EGA[15]; ctx.fillRect(0, 0, 320, 10);
   text(`Score: ${S.score} of ${MAX_SCORE}`, 4, 1, 0);
   text("James's Quest", 124, 1, 0);
-  text('Bucket', 284, 1, 0);
   if (flash && flash.t > 0) { text(flash.txt, 92, 1, 4); flash.t--; }
 
   if (debug) { ctx.fillStyle = 'rgba(0,255,0,.18)'; ctx.fillRect(0, sc.walk.y0, 320, sc.walk.y1 - sc.walk.y0); ctx.strokeStyle = '#f0f'; ctx.lineWidth = 1; for (const k in H) { const h = H[k]; ctx.strokeRect(h.x + .5, h.y + .5, h.w, h.h); text(k, h.x + 1, h.y + 1, 13); } }
 
-  if (verbCoin) drawVerbCoin();
   if (bucketOpen) drawBucket();
   if (msgOpen) drawMsg(msgOpen);
 }
@@ -1018,12 +974,6 @@ function drawMsg(m) {
   box(x, y, w, h); lines.forEach((l, i) => text(l, x + PAD, y + 8 + i * 10, 0));
   if (Math.floor(tick / 15) % 2) text('▼', x + w - 14, y + h - 10, 8);
 }
-function drawVerbCoin() {
-  const v = verbCoin; const items = ['Look', 'Take', 'Use', 'Talk']; const w = 44, h = 14;
-  const x0 = Math.max(2, Math.min(320 - w * 2 - 4, v.x - w)), y0 = Math.max(12, Math.min(200 - h * 2 - 4, v.y - h));
-  v.rects = [];
-  items.forEach((it, i) => { const x = x0 + (i % 2) * (w + 2), y = y0 + Math.floor(i / 2) * (h + 2); box(x, y, w, h); text(it, x + 8, y + 3, 0); v.rects.push({ x, y, w, h, it }); });
-}
 function drawBucket() {
   // ICON_X is the centre of the icon column and LABEL_X where the text
   // starts. The gap has to clear the widest sprite: the glasses are 32 game
@@ -1032,13 +982,11 @@ function drawBucket() {
   box(30, 30, 260, 140); text(TXT.inventoryTitle, 40, 38, 0);
   const items = S.inv.filter(i => i !== 'bucket'); let y = 52;
   if (!items.length) { text(TXT.inventoryEmpty, 40, y, 8); y += 14; }
-  bucketRects = [];
-  for (const it of items) { const spr = ITEMS[it].spr; if (spr) drawSprite(SPR[spr], 0, ICON_X, y + 10); text(ITEMS[it].name, LABEL_X, y + 1, selectedItem === it ? 4 : 0); bucketRects.push({ x: 36, y: y - 2, w: 240, h: 14, it }); y += 16; }
+  for (const it of items) { const spr = ITEMS[it].spr; if (spr) drawSprite(SPR[spr], 0, ICON_X, y + 10); text(ITEMS[it].name, LABEL_X, y + 1, 0); y += 16; }
   if (S.signs > 0) { drawSprite(SPR.sign, 0, ICON_X, y + 12); text(TXT.signsLeft(S.signs), LABEL_X, y + 1, 0); y += 16; }
-  drawSprite(SPR.dadicon, 0, ICON_X, y + 10); text('Dad (use him on things)', LABEL_X, y + 1, selectedItem === 'dad' ? 4 : 0); bucketRects.push({ x: 36, y: y - 2, w: 240, h: 14, it: 'dad' }); y += 16;
-  text('tap an item to pick it up, tap again to put it down', 40, 152, 8);
+  drawSprite(SPR.dadicon, 0, ICON_X, y + 10); text('Dad (type USE DAD ON STAIRS)', LABEL_X, y + 1, 0); y += 16;
+  text('type USE <thing> ON <thing> to use something', 40, 152, 8);
 }
-let bucketRects = [];
 
 const ITEMS = {
   bucket:  { name: 'trick-or-treat bucket', spr: 'bucket', look: 'Your bucket. Orange, pumpkin face, a bit of a dent from last year. Perfect.' },
@@ -1126,7 +1074,14 @@ function parse(raw) {
   if (verb === 'talk' && (rest === 'dad' || rest === 'to dad')) return askDad();
   const target = findHotspot(rest) || findItem(rest);
   if (!target && !rest && verb === 'talk' && S.screen === 'street') return doVerb('talk', 'neighbour');
-  if (!target) { if (!rest) return say(verb === 'look' ? lookAround() : `${verb.charAt(0).toUpperCase() + verb.slice(1)} what?`); return say(pick(TXT.nothingHere)); }
+  if (!target) {
+    if (!rest) {
+      if (verb !== 'look') return say(`${verb.charAt(0).toUpperCase() + verb.slice(1)} what?`);
+      const here = thingsHere();
+      return say(here ? [lookAround(), here] : lookAround());
+    }
+    return say(pick(TXT.nothingHere));
+  }
   return doVerb(verb, target);
 }
 function findHotspot(noun) {
@@ -1139,7 +1094,25 @@ function findHotspot(noun) {
   return null;
 }
 function findItem(noun) { if (!noun) return null; for (const id in ITEMS) { if (!has(id)) continue; const names = [id, ITEMS[id].name.toLowerCase()]; if (names.some(n => noun === n || noun.includes(n) || n.includes(noun))) return id; } if (noun.includes('dad')) return 'dad'; return null; }
-function lookAround() { return { street: TXT.street.enter, bean: TXT.bean.enter, school: S.flags.lit ? TXT.school.enterLit : TXT.school.enter }[S.screen]; }
+function lookAround() {
+  return { street: TXT.street.enter, bean: TXT.bean.enter,
+           school: S.flags.lit ? TXT.school.enterLit : TXT.school.enter }[S.screen];
+}
+
+// Bare LOOK names everything on the screen. This is the typed answer to "how
+// do I know what I can touch": there is no hover and no button to press, so
+// the game has to be willing to say. It reads the same hotspot table the
+// parser does, and honours the same rules - something not yet revealed, or
+// already in the bucket, is not listed, so LOOK cannot give away the glasses
+// hiding under the cat.
+function thingsHere() {
+  const H = cur().hotspots, skip = { street: 1, plaza: 1 }, names = [];
+  for (const id in H) if (!skip[id] && live(H[id], id)) names.push(H[id].name);
+  if (!names.length) return null;
+  const last = names.pop();
+  return 'You can see ' + (names.length ? names.join(', ') + ' and ' + last : last) +
+         '. Try LOOK AT, TAKE, USE or TALK TO any of them.';
+}
 
 // ---------------------------------------------------------------- ACTIONS
 function walkToThen(id, fn) {
@@ -1161,7 +1134,7 @@ function doVerb(verb, id) {
   walkToThen(id, () => {
     if (verb === 'take') return takeIt(id);
     if (verb === 'talk') return talkTo(id);
-    if (verb === 'use') return useOn(selectedItem, id);
+    if (verb === 'use') return say(`Use what on ${hs(id).name}? Try USE CANDLE ON PUMPKIN.`);
   });
 }
 function lookAt(id) {
@@ -1215,7 +1188,6 @@ function talkTo(id) {
 }
 function useOn(item, id) {
   const f = S.flags, St = TXT.street, B = TXT.bean, C = TXT.school;
-  selectedItem = null;
   if (item === 'dad') {
     if (S.screen === 'school' && (id === 'stairs' || id === 'tower' || id === 'lantern')) return climbStairs();
     return say(C.useDadElse);
@@ -1288,8 +1260,6 @@ cmd.addEventListener('keydown', e => {
   if (e.key === 'Escape') cmd.blur();
   e.stopPropagation();
 });
-document.getElementById('askdad').onclick = () => { if (msgOpen) { nextMsg(); return; } echo('ask dad'); askDad(); };
-document.getElementById('bucketbtn').onclick = () => { if (msgOpen) nextMsg(); else bucketOpen = !bucketOpen; };
 window.addEventListener('keydown', e => {
   if (e.target === cmd && !e.key.startsWith('Arrow')) return;
   if (finaleState && finaleState.stage === 2 && e.key === 'Enter') { S = START(); awarded = {}; finaleState = null; save(); beginIntro(); return; }
@@ -1363,13 +1333,8 @@ function onTap(e) {
   if (finaleState) { if (finaleState.stage === 2) { S = START(); awarded = {}; finaleState = null; save(); beginIntro(); } else if (msgOpen) nextMsg(); return; }
   if (msgOpen) { nextMsg(); return; }
   if (endCat()) return;
-  if (p.y < 10 && p.x > 270) { bucketOpen = !bucketOpen; return; }
-  if (bucketOpen) { const r = bucketRects.find(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h); if (r) { selectedItem = selectedItem === r.it ? null : r.it; if (selectedItem) { bucketOpen = false; echo('use ' + (r.it === 'dad' ? 'Dad' : ITEMS[r.it].name) + ' on what?'); } } else bucketOpen = false; return; }
-  if (verbCoin) { const r = verbCoin.rects.find(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h); const id = verbCoin.id; verbCoin = null; if (r) { const v = r.it.toLowerCase(); echo(phrase(v, id)); doVerb(v, id); } return; }
+  if (bucketOpen) { bucketOpen = false; return; }
   if (debug) console.log('tap', p);
-  const id = hitHotspot(p);
-  if (selectedItem) { if (id) { echo('use ' + (selectedItem === 'dad' ? 'Dad' : ITEMS[selectedItem].name) + ' on ' + hs(id).name); walkToThen(id, () => useOn(selectedItem, id)); } else selectedItem = null; return; }
-  if (id && !['street', 'plaza'].includes(id)) { verbCoin = { x: p.x, y: p.y, id }; return; }
   // Tapping bare ground used to send James walking there. The campaign asked
   // for the arrows to be how you walk, and they are right: click-to-walk and
   // tap-to-interact on the same surface means every missed tap on a small
@@ -1379,19 +1344,6 @@ function onTap(e) {
   // him somewhere - that is walkToThen and it is untouched.
 }
 cv.addEventListener('mousedown', onTap); cv.addEventListener('touchstart', onTap, { passive: false });
-cv.addEventListener('mousemove', e => {
-  if (msgOpen || bucketOpen || verbCoin || finaleState || catPlay) { hoverId = null; return; }
-  const p = canvasPoint(e);
-  const id = hitHotspot(p);
-  hoverId = (id && id !== 'street' && id !== 'plaza') ? id : null;
-  cv.style.cursor = hoverId ? 'pointer' : 'default';
-});
-cv.addEventListener('mouseleave', () => { hoverId = null; cv.style.cursor = 'default'; });
-document.getElementById('showbtn').onclick = () => {
-  if (msgOpen) { nextMsg(); return; }
-  showAll = !showAll;
-  document.getElementById('showbtn').textContent = showAll ? 'Hide things' : 'Show things';
-};
 
 document.getElementById('crtbtn').onclick = () => { const m = document.getElementById('monitor'); m.classList.toggle('crt'); document.getElementById('crtbtn').textContent = 'CRT: ' + (m.classList.contains('crt') ? 'on' : 'off'); fit(); };
 function fit() {
