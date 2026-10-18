@@ -461,7 +461,7 @@ const SCREENS = {
     bg: 'assets/bg/bean.png', placeholder: [1, 6, 8],
     walk: { y0: 150, y1: 190 },
     start: { x: 26, y: 172 },
-    exits: { left: 'street', right: 'school' },
+    exits: { left: 'street', right: 'market' },
     hotspots: {
       bean:    { x: 36,  y: 0,   w: 216, h: 150, name: 'the Bean', syn: ['coffee shop','cafe','shop','building'] },
       door:    { x: 182, y: 48,  w: 40,  h: 98,  name: 'door', syn: ['front door','doorway','inside','go inside','enter'] },
@@ -475,11 +475,26 @@ const SCREENS = {
       street:  { x: 0,   y: 158, w: 320, h: 42,  name: 'sidewalk', syn: ['street','road','pavement'] },
     }
   },
+  market: {
+    bg: 'assets/bg/market.png', placeholder: [1, 6, 8],
+    walk: { y0: 174, y1: 194 },
+    start: { x: 26, y: 184 },
+    exits: { left: 'bean', right: 'school' },
+    hotspots: {
+      market:    { x: 36,  y: 48,  w: 250, h: 116, name: 'the market', syn: ['stall','stalls','farmers market','awning','shop','building'] },
+      scarecrow: { x: 88,  y: 134, w: 34,  h: 48,  name: 'the Scarecrow', syn: ['scarecrow','straw man','candidate','corn guy'], sx: 105, sy: 182 },
+      hay:       { x: 208, y: 116, w: 66,  h: 52,  name: 'hay bales', syn: ['hay','bales','bale','straw'] },
+      pumpkins:  { x: 254, y: 138, w: 66,  h: 34,  name: 'pile of pumpkins', syn: ['pumpkins','pumpkin pile','heap','big pumpkin'] },
+      pole:      { x: 10,  y: 0,   w: 24,  h: 168, name: 'hydro pole', syn: ['pole','post','wires','hydro'] },
+      grass:     { x: 40,  y: 162, w: 256, h: 16,  name: 'grass strip', syn: ['grass','verge','strip','lawn'] },
+      street:    { x: 0,   y: 178, w: 320, h: 22,  name: 'road', syn: ['street','pavement','sidewalk'] },
+    }
+  },
   school: {
     bg: 'assets/bg/school.png', placeholder: [1, 8, 7],
     walk: { y0: 186, y1: 197 },
     start: { x: 40, y: 192 },
-    exits: { left: 'bean' },
+    exits: { left: 'market' },
     hotspots: {
       school:  { x: 8,   y: 50,  w: 304, h: 96,  name: 'the school', syn: ['big school','building','old school','schoolhouse'] },
       lantern: { x: 142, y: 0,   w: 26,  h: 24,  name: 'the Great Pumpkin Lantern', syn: ['lantern','great lantern','pumpkin lantern','big pumpkin','pumpkin','top','tower top'] },
@@ -524,6 +539,7 @@ const TXT = {
   dadIdle: {
     street: ["\"Nice night for it, eh?\"", "\"Look at the leaves, kiddo. Poppin' off.\"", "\"Think the lantern's this way. Let's go right.\""],
     bean:   ["\"The Bean. Beanie beanie beanie.\"", "\"Gus makes a good coffee. Terrible foam, good coffee.\"", "\"The school is just up the way. When you're ready.\""],
+    market: ["\"Love this market. Could eat a whole squash.\"", "\"The school is just up the way, kiddo.\"", "\"Say hello to the fella in the hat.\""],
     school: ["\"Big school. Big stairs. Big night.\"", "\"You've done so well, James. Honestly.\"", "\"Up we go, whenever you're ready.\""],
   },
   dadHints: {
@@ -548,6 +564,12 @@ const TXT = {
                   "\"USE the glasses on Gus, kiddo.\""],
     signB:       ["\"That planter would be a grand spot for a sign. Have to ask Gus first though.\"",
                   "\"TALK TO Gus about the sign, then PLACE SIGN on the planter.\""],
+    // market
+    scarecrow:   ["\"There is somebody standing by the stalls. Go on, say hello.\"",
+                  "\"He looks like he wants to tell you something. Scarecrows usually do.\"",
+                  "\"TALK TO THE SCARECROW, kiddo.\""],
+    signD:       ["\"That grass out front would take a sign nicely. He did say so.\"",
+                  "\"PLACE SIGN ON THE GRASS. A metre back, mind, he is a stickler.\""],
     // school
     stairs:      ["\"That's a lot of stairs.\" Dad looks at the stairs. The stairs look back.",
                   "\"Tell you what. Hop up. I've carried heavier. Barely.\"",
@@ -569,6 +591,7 @@ const TXT = {
       lawn: "Our lawn. Dad mowed it this week. He mentioned it twice.",
       lawnSigned: "Our lawn, with a DAN ATKINSON sign on it. Dad keeps glancing at it.",
       neighbour: "The neighbours'. Mrs. Patel and her boys. Their porch is dark tonight.",
+      neighbourLit: "The neighbours'. Mrs. Patel is out on her step in a cardigan, looking very pleased with her pumpkin.",
       pumpkin: "A big carved pumpkin with a lovely grin. Dark inside. Sad pumpkin.",
       pumpkinLit: "The pumpkin is lit! Grinning like anything. Warm orange all over the porch.",
       nlawn: "The neighbours' lawn. Tidy. Leaves raked into a pile the boys are going to jump in tomorrow.",
@@ -578,13 +601,14 @@ const TXT = {
     },
     takeCandle: "You take the candle. Carefully. Two hands. Dad nods.",
     useCandlePumpkin: ["You lean in and light the pumpkin. The grin glows. The whole porch goes warm orange.",
-                       "Dad: \"Oh, that's better. That's much better.\""],
+                       "Dad: \"Oh, that's better. That's much better.\"",
+                       "The neighbours' door opens. Mrs. Patel comes out onto the step in her cardigan, looks at her pumpkin, and puts both hands on her face.",
+                       "Mrs. Patel: \"Well, would you look at that.\" She is looking right at you."],
     useCandleWrong: "The candle goes on pumpkins, kiddo. Nothing else needs lighting.",
     knockDark: "You knock. Nobody comes. Dad: \"They're probably out back. Pumpkin's not even lit, look.\"",
-    knockLit: ["You knock. Mrs. Patel opens the door and sees her pumpkin glowing.",
-               "Mrs. Patel: \"Oh! Was that you, James? Well. WELL.\" She goes away and comes back with two candies. Two!",
+    knockLit: ["Mrs. Patel: \"Oh! Was that you, James? Well. WELL.\" She goes away and comes back with two candies. Two!",
                "Mrs. Patel: \"One for now, one for after. And tell your dad the sign can go on my lawn if he likes.\""],
-    knockDone: "Mrs. Patel waves from the window. The boys wave too. One of them is upside down.",
+    knockDone: "Mrs. Patel is still on her step, admiring her own pumpkin. Her boys are at the window behind her. One of them is upside down.",
     candy: "Two candies, purple wrappers. You can hear them crinkle in the bucket.",
     eatCandy: "Dad: \"After, bud. We're on a mission.\" He says it kindly. He also eyes the candy.",
     poleSign: ["You lean a sign against the big maple.",
@@ -653,6 +677,39 @@ const TXT = {
     beanSign: "Not on the building. Walls are not lawns.",
   },
 
+  // MARKET
+  market: {
+    enter: "The farmers market. Apples, squash, hay bales, and a pile of pumpkins the size of a small car.",
+    look: {
+      market: "The market stall, all under one long stripy awning. It smells like apples and cold air.",
+      hay: "Hay bales stacked like big scratchy stairs. You are not allowed to climb them. You have asked. Twice.",
+      pumpkins: "A heap of pumpkins. One of them is enormous and has a ribbon on it, so it won something.",
+      pole: "A hydro pole. Wires going off in four directions at once. Dad looks at it the way he looks at every hydro pole.",
+      grass: "A strip of grass along the front of the market. Good grass. Flat, soft, nothing buried in it. Sign grass.",
+      grassSigned: "The grass strip, with a DAN ATKINSON sign standing in it. The Scarecrow says it brings up the tone.",
+      scarecrow: "A scarecrow. Standing up, stitched smile, very serious hat. Propped by his boot is a sign: VOTE FOR CORN.",
+      scarecrowMet: "The Scarecrow, standing a bit taller than before. Candidates do that once somebody has listened.",
+      street: "The road past the market. Leaves all the way across it."
+    },
+    talkScarecrow: ["\"Evening!\" says the Scarecrow. \"Don't be alarmed. I'm not a spooky one. I'm a civic one.\"",
+                    "Scarecrow: \"I'm running for office. My sign's right there. VOTE FOR CORN.\"",
+                    "You ask what his platform is. The Scarecrow takes a long, satisfied breath.",
+                    "Scarecrow: \"More corn.\"",
+                    "You wait. There is quite a lot of waiting.",
+                    "Scarecrow: \"That's it. That's the platform. I have been very clear about it.\"",
+                    "Dad is trying extremely hard to keep his face normal.",
+                    "Scarecrow: \"Your dad's running too, isn't he. Put one of his up on the grass there. Professional courtesy. Just mind it's a metre back from the curb. I'm a stickler.\""],
+    talkScarecrowAgain: "Scarecrow: \"More corn,\" he says, in case you have forgotten the platform. You have not forgotten the platform.",
+    scarecrowBusy: "That is the Scarecrow's grass, and the Scarecrow is right there. Say hello first.",
+    grassSign: ["You push the wire into the grass strip, a good big step back from the curb.",
+                "Scarecrow: \"A METRE. Look at that. Textbook.\" He cannot clap, being a scarecrow, but he conveys clapping."],
+    poleSign: ["You lean a sign against the hydro pole.",
+               "Dad: \"Not on a pole, kiddo. That one is an actual bylaw, not just me being fussy.\" Back in the bundle it goes."],
+    streetSign: "Not on the road, James. The road is for cars and for leaves.",
+    haySign: "Dad: \"It would fall straight over. Hay is not known for its grip.\"",
+    takeThing: "That belongs to the market, and we are not a market."
+  },
+
   // SCHOOL
   school: {
     enter: "The school on the hill. The Great Pumpkin Lantern sits at the very top of the clock tower. Dark.",
@@ -700,7 +757,7 @@ const TXT = {
     "and DAD",
     "",
     `Score: ${score} of ${MAX_SCORE}`,
-    `Signs placed: ${signs} of 3`,
+    `Signs placed: ${signs} of 4`,
     signs === 3 ? "A great, great many thanks to you." : "",
     S.got.catplay ? "You were also, briefly, a cat." : "",
     "",
@@ -717,13 +774,19 @@ const TXT = {
 // ---------------------------------------------------------------- STATE
 const START = () => ({
   screen: 'street', x: 40, y: 165, facing: 1,
-  score: 0, got: {}, flags: {}, inv: ['bucket'], signs: 3, placed: {},
+  score: 0, got: {}, flags: {}, inv: ['bucket'], signs: 4, placed: {},
   seenIntro: false, done: false,
 });
 let S = START();
 const SAVE_KEY = 'jamesquest-small-v1';
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
 function load() { try { const s = localStorage.getItem(SAVE_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+// Save whenever the game goes away: the tab is closed or hidden, or the
+// overlay is shut and the iframe torn down. award() and goScreen() already
+// save at every scoring moment, so this is only the few steps since the
+// last one - but those few steps are exactly what a player notices losing.
+window.addEventListener('pagehide', () => { try { save(); } catch (e) {} });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { try { save(); } catch (e) {} } });
 
 // ---------------------------------------------------------------- ENGINE
 const cv = document.getElementById('game'), ctx = cv.getContext('2d');
@@ -743,7 +806,7 @@ const bgImgs = {};
 // Optional picture sprites. If assets/sprites/<name>.png exists it replaces the
 // hand-pixeled one. Make them with tools/sprite.py (RGBA, game-pixel height,
 // facing right, feet at the bottom row).
-const IMGSPR = {}; const IMGSPR_NAMES = ['james', 'dad', 'gus', 'cat', 'spider', 'sign', 'pumpkin_dark', 'pumpkin_lit', 'candle', 'jar', 'patel', 'bucket', 'candy', 'glasses', 'dadicon'];
+const IMGSPR = {}; const IMGSPR_NAMES = ['james', 'dad', 'gus', 'cat', 'spider', 'sign', 'pumpkin_dark', 'pumpkin_lit', 'candle', 'jar', 'patel', 'bucket', 'candy', 'glasses', 'dadicon', 'scarecrow'];
 for (const n of IMGSPR_NAMES) { const im = new Image(); im.src = 'assets/sprites/' + n + '.png'; im.onload = () => { IMGSPR[n] = im; }; im.onerror = () => {}; }
 function sprName(spr) { for (const k in SPR) if (SPR[k] === spr) return k; return null; }
 for (const k in SCREENS) { const im = new Image(); im.src = SCREENS[k].bg; im.onload = () => { bgImgs[k] = im; }; im.onerror = () => {}; }
@@ -755,34 +818,27 @@ for (const k in SCREENS) { const im = new Image(); im.src = SCREENS[k].bg; im.on
 
 let debug = false, tick = 0, walkTarget = null, keys = {}, msgQueue = [], msgOpen = null, bucketOpen = false, finaleState = null;
 
-// Ticks of nothing happening before Dad offers a hint unasked. 15fps, so
-// this is about twenty-five seconds. A six year old does not know that the
-// button in the corner is the hint system, and a stuck child does not read
-// the UI - he asks the adult standing next to him, which is exactly what Dad
-// is for. Reuses askDad, so a second unprompted nudge escalates a tier the
-// same way asking twice does, and a puzzle with nothing left to solve falls
-// through to Dad's idle chatter instead.
 // Being the cat. A hidden bonus, and deliberately inert: it unlocks only
 // once the glasses are out from under her, so it can never interfere with
-// the one puzzle she is part of, and nothing you do as the cat changes the
-// world. Exits are blocked while it runs, so there is no way to end up on
-// another screen as a cat with no way back.
+// the one puzzle she is part of, and nothing done as the cat changes the
+// world. Exits are blocked while it runs.
 let catPlay = null;
 
-const IDLE_NUDGE = 375;
-let idleTicks = 0;
-function stirred() { idleTicks = 0; }
+// Dad used to offer a hint after twenty-five seconds of quiet. The campaign
+// cut it: James is sharp, and a game that answers itself before you have
+// finished thinking is not a puzzle. Hints live behind ASK DAD and nowhere
+// else now.
 
 let dadX = 20, dadY = 165, dadFacing = 1, dadStep = 0;
 let awarded = {};
 
-// Thirteen deeds at five points: ten award() calls plus the three signs.
+// Fifteen deeds at five points: eleven award() calls plus the four signs.
 // One of the ten is the hidden one, so finishing the story leaves you on 60
 // of 65 and something still to find, the way the old games did it.
 // This read "of 50" in three places and a child who finished the game was
 // shown 60 of 50, which looks like a bug to the one person who must not
 // think the game is broken.
-const MAX_SCORE = 65;
+const MAX_SCORE = 75;
 function award(key, pts) { if (awarded[key]) return; awarded[key] = true; S.score += pts; S.got[key] = true; flash = { t: 30, txt: '+' + pts }; save(); }
 let flash = null;
 
@@ -811,9 +867,8 @@ function clampWalk(x, y) { const w = cur().walk; return [Math.max(6, Math.min(31
 function update() {
   tick++;
   if (S.flags.finalePending && !msgOpen && !msgQueue.length && !finaleState) { S.flags.finalePending = false; S.done = true; startFinale(); }
-  if (msgOpen || bucketOpen || finaleState) { idleTicks = 0; return; }
+  if (msgOpen || bucketOpen || finaleState) return;
   if (catPlay) {
-    idleTicks = 0;
     let cx = 0, cy = 0;
     if (keys.ArrowLeft) cx -= STEP; if (keys.ArrowRight) cx += STEP;
     if (keys.ArrowUp) cy -= 1; if (keys.ArrowDown) cy += 1;
@@ -826,9 +881,7 @@ function update() {
     }
     return;   // James stays where he is, Dad stays where he is, no exits
   }
-  if (++idleTicks > IDLE_NUDGE) { idleTicks = 0; askDad(); return; }
   let dx = 0, dy = 0;
-  if (keys.ArrowLeft || keys.ArrowRight || keys.ArrowUp || keys.ArrowDown) idleTicks = 0;
   if (keys.ArrowLeft) dx -= STEP; if (keys.ArrowRight) dx += STEP; if (keys.ArrowUp) dy -= 1; if (keys.ArrowDown) dy += 1;
   if (dx || dy) walkTarget = null;
   if (walkTarget) {
@@ -857,14 +910,19 @@ function goScreen(name, side) {
   dadX = side === 'left' ? -10 : 330; dadY = S.y + 2; walkTarget = null;
   onEnter(); save();
 }
+// What a screen says when you arrive, and what LOOK repeats. Read off TXT by
+// screen name rather than a list of screens written out by hand: adding the
+// market broke both of the hand-written ones, and lookAround's returned
+// undefined, which say() then tried to call .replace on.
+function enterText() {
+  const t = TXT[S.screen];
+  return (S.screen === 'school' && S.flags.lit) ? t.enterLit : t.enter;
+}
 function onEnter() {
   const n = S.screen;
-  if (!S.flags['seen_' + n]) {
-    S.flags['seen_' + n] = true;
-    if (n === 'street') say(TXT.street.enter);
-    if (n === 'bean') say([TXT.bean.enter, TXT.bean.enterDad]);
-    if (n === 'school') say(S.flags.lit ? TXT.school.enterLit : TXT.school.enter);
-  }
+  if (S.flags['seen_' + n]) return;
+  S.flags['seen_' + n] = true;
+  say(n === 'bean' ? [TXT.bean.enter, TXT.bean.enterDad] : enterText());
 }
 
 // ---------------------------------------------------------------- DRAW
@@ -915,13 +973,22 @@ function render() {
   if (S.screen === 'street') {
     if (!has('candle') && !S.flags.pumpkinLit) draws.push({ y: H.candle.sy, f: () => drawSprite(SPR.candle, 0, H.candle.sx, H.candle.sy) });
     draws.push({ y: H.pumpkin.sy, f: () => drawSprite(S.flags.pumpkinLit ? SPR.pumpkin_lit : SPR.pumpkin_dark, 0, H.pumpkin.sx, H.pumpkin.sy) });
-    // Mrs. Patel comes to the door and stays there. She is the best moment in
-    // the game and was text only until the campaign drew her. Guarded on the
-    // image rather than given a hand-pixeled fallback: there is no SPR.patel,
-    // and an absent neighbour is better than a crash.
-    if (S.flags.candyGot && IMGSPR.patel) draws.push({ y: 151, f: () => drawImgSprite(IMGSPR.patel, 0, 240, 153, false) });
+    // Mrs. Patel comes out the moment her pumpkin is lit, not after you
+    // knock. Knocking was the next step and nothing on screen said so, so a
+    // player stood in a lit street wondering what to do. A neighbour
+    // appearing at her door is the signpost. Guarded on the image rather
+    // than given a hand-pixeled fallback: there is no SPR.patel, and an
+    // absent neighbour is better than a crash.
+    if (S.flags.pumpkinLit && IMGSPR.patel) draws.push({ y: 151, f: () => drawImgSprite(IMGSPR.patel, 0, 240, 153, false) });
     if (S.placed.A) draws.push({ y: 176, f: () => drawSprite(SPR.sign, 0, 26, 170) });
     if (S.placed.B) draws.push({ y: 164, f: () => drawSprite(SPR.sign, 0, 250, 162) });
+  }
+  if (S.screen === 'market') {
+    // Guarded on the image, like Mrs. Patel: there is no hand-pixeled
+    // SPR.scarecrow to fall back to, and drawSprite would read .frames off
+    // undefined and take the whole render down with it.
+    if (IMGSPR.scarecrow) draws.push({ y: H.scarecrow.sy, f: () => drawImgSprite(IMGSPR.scarecrow, 0, H.scarecrow.sx, H.scarecrow.sy, false) });
+    if (S.placed.D) draws.push({ y: 176, f: () => drawSprite(SPR.sign, 0, 196, 176) });
   }
   if (S.screen === 'bean') {
     const sp = H.spider; draws.push({ y: 300, f: () => drawSprite(SPR.spider, 0, S.flags.spiderHi ? sp.sx + 4 : sp.sx, S.flags.spiderHi ? sp.sy - 10 : sp.sy) });
@@ -1044,6 +1111,14 @@ const VERBS = {
   eat: ['eat', 'unwrap'],
 };
 const FILLER = /\b(the|a|an|to|at|please|up|some|my|that|this)\b/g;
+// The one thing that obviously goes with a thing. So LIGHT THE PUMPKIN and
+// USE THE PUMPKIN both work when the candle is in the bucket, rather than
+// only the exact USE CANDLE ON PUMPKIN. Requiring the full phrasing makes it
+// a puzzle about wording instead of about pumpkins, which is not the puzzle.
+// Only ever fires when the player is already carrying the answer, so it
+// cannot solve anything for them early.
+const PAIRS = { pumpkin: 'candle', lantern: 'jar', stairs: 'dad', tower: 'dad', gus: 'glasses' };
+
 function parse(raw) {
   let s = raw.toLowerCase().replace(/[^a-z0-9' ]/g, ' ').replace(/\s+/g, ' ').trim();
   if (!s) return;
@@ -1054,6 +1129,16 @@ function parse(raw) {
   if (VERBS.save.includes(s)) { save(); return say('Saved. Like a good adventurer.'); }
   if (VERBS.restore.includes(s)) { const l = load(); if (l) { S = l; onEnterQuiet(); return say('Restored.'); } return say('Nothing saved yet.'); }
   if (VERBS.restart.includes(s)) { if (confirm('Start over from the beginning?')) { S = START(); awarded = {}; save(); beginIntro(); } return; }
+  // Typed movement, so a player who would rather type than hold a key can
+  // still get about: GO LEFT, WALK RIGHT, EAST, W.
+  const dir = s.match(/^(?:go|walk|head|move)?\s*(left|right|west|east|w|e)$/);
+  if (dir) {
+    const d = { west: 'left', e: 'right', east: 'right', w: 'left', left: 'left', right: 'right' }[dir[1]];
+    const ex = cur().exits;
+    if (!ex[d]) return say(`There is no way ${d} from here.`);
+    walkTarget = { x: d === 'right' ? 316 : 4, y: S.y };
+    return;
+  }
   let verb = null, rest = s;
   for (const v in VERBS) { for (const syn of VERBS[v].sort((a, b) => b.length - a.length)) { if (s === syn || s.startsWith(syn + ' ')) { verb = v; rest = s.slice(syn.length).trim(); break; } } if (verb) break; }
   if (verb === 'use') {
@@ -1066,7 +1151,13 @@ function parse(raw) {
     const h = findHotspot(rest) || findItem(rest); if (h) return doVerb('look', h); return say(pick(TXT.unknown));
   }
   if (verb === 'use') {
-    const h = findHotspot(rest); const it = findItem(rest); if (h) return doVerb('use', h); if (it) return say(`Use ${ITEMS[it].name} on what?`); return say(pick(TXT.unknown));
+    const h = findHotspot(rest); const it = findItem(rest);
+    if (h) {
+      const want = PAIRS[h];
+      if (want && (want === 'dad' || has(want))) return walkToThen(h, () => useOn(want, h));
+      return doVerb('use', h);
+    }
+    if (it) return say(`Use ${ITEMS[it].name} on what?`); return say(pick(TXT.unknown));
   }
   if (verb === 'eat') return has('candy') ? say(TXT.street.eatCandy) : say("Nothing to eat. Yet.");
   if (verb === 'climb') return doVerb('use', S.screen === 'school' ? 'stairs' : null);
@@ -1077,8 +1168,8 @@ function parse(raw) {
   if (!target) {
     if (!rest) {
       if (verb !== 'look') return say(`${verb.charAt(0).toUpperCase() + verb.slice(1)} what?`);
-      const here = thingsHere();
-      return say(here ? [lookAround(), here] : lookAround());
+      const here = thingsHere(), ways = exitsHere();
+      return say([lookAround(), here, ways].filter(Boolean));
     }
     return say(pick(TXT.nothingHere));
   }
@@ -1094,10 +1185,7 @@ function findHotspot(noun) {
   return null;
 }
 function findItem(noun) { if (!noun) return null; for (const id in ITEMS) { if (!has(id)) continue; const names = [id, ITEMS[id].name.toLowerCase()]; if (names.some(n => noun === n || noun.includes(n) || n.includes(noun))) return id; } if (noun.includes('dad')) return 'dad'; return null; }
-function lookAround() {
-  return { street: TXT.street.enter, bean: TXT.bean.enter,
-           school: S.flags.lit ? TXT.school.enterLit : TXT.school.enter }[S.screen];
-}
+function lookAround() { return enterText(); }
 
 // Bare LOOK names everything on the screen. This is the typed answer to "how
 // do I know what I can touch": there is no hover and no button to press, so
@@ -1112,6 +1200,20 @@ function thingsHere() {
   const last = names.pop();
   return 'You can see ' + (names.length ? names.join(', ') + ' and ' + last : last) +
          '. Try LOOK AT, TAKE, USE or TALK TO any of them.';
+}
+
+// Where you can walk from here. Walking off the edge has always changed
+// screen, the way it does in the old games, but nothing ever said so - the
+// campaign had not found it. LOOK says it now, and GO LEFT works as well as
+// holding the arrow.
+const WAY = { left: 'left', right: 'right' };
+function exitsHere() {
+  const ex = cur().exits, out = [];
+  if (ex.left) out.push('left');
+  if (ex.right) out.push('right');
+  if (!out.length) return null;
+  return 'You can walk ' + out.join(' or ') + ' from here. Hold the arrow key, or type GO ' +
+         out[0].toUpperCase() + '.';
 }
 
 // ---------------------------------------------------------------- ACTIONS
@@ -1144,6 +1246,11 @@ function lookAt(id) {
     if (id === 'pumpkin') return f.pumpkinLit ? L.pumpkinLit : L.pumpkin;
     if (id === 'lawn') return S.placed.A ? L.lawnSigned : L.lawn;
     if (id === 'nlawn') return S.placed.B ? L.nlawnSigned : L.nlawn;
+    if (id === 'neighbour') return f.pumpkinLit ? L.neighbourLit : L.neighbour;
+  }
+  if (S.screen === 'market') {
+    if (id === 'grass') return S.placed.D ? L.grassSigned : L.grass;
+    if (id === 'scarecrow') return f.metScarecrow ? L.scarecrowMet : L.scarecrow;
     if (id === 'candle' && (has('candle') || f.pumpkinLit)) return L.porchNoCandle;
   }
   if (S.screen === 'bean') {
@@ -1166,13 +1273,20 @@ function takeIt(id) {
   const f = S.flags;
   if (S.screen === 'street' && (id === 'candle' || (id === 'porch' && !has('candle') && !f.pumpkinLit))) { if (has('candle') || f.pumpkinLit) return say(TXT.street.look.porchNoCandle); give('candle'); award('candle', 5); return say(TXT.street.takeCandle); }
   if (S.screen === 'street' && id === 'pumpkin') return say("It's the neighbours' pumpkin, bud. Leave it. But maybe light it?");
+  if (S.screen === 'market' && ['pumpkins', 'hay', 'market'].includes(id)) return say(TXT.market.takeThing);
+  if (S.screen === 'market' && id === 'scarecrow') return say("You cannot take a candidate, James. They have commitments.");
   if (S.screen === 'bean' && (id === 'glasses' || (id === 'cat' && f.catMoved && !has('glasses') && !f.gusGlasses))) { if (!f.catMoved) return say(TXT.bean.look.cat); if (has('glasses') || f.gusGlasses) return say(TXT.bean.look.catMoved); give('glasses'); award('glasses', 5); return say(TXT.bean.takeGlasses); }
   if (S.screen === 'bean' && id === 'cat') return say(`${FILL.cat} is not for taking. ${FILL.cat} has made that clear.`);
   if (S.screen === 'bean' && id === 'spider') return say("You don't take spiders, James. You say hello to them.");
   return say(pick(TXT.cantTake));
 }
 function talkTo(id) {
-  const f = S.flags, B = TXT.bean, St = TXT.street;
+  const f = S.flags, B = TXT.bean, St = TXT.street, M = TXT.market;
+  if (S.screen === 'market' && id === 'scarecrow') {
+    if (f.metScarecrow) return say(M.talkScarecrowAgain);
+    f.metScarecrow = true; f.askedD = true; award('platform', 5);
+    return say(M.talkScarecrow);
+  }
   if (S.screen === 'street') {
     if (id === 'neighbour') { if (f.candyGot) return say(St.knockDone); if (!f.pumpkinLit) return say(St.knockDark); f.candyGot = true; f.askedB = true; give('candy'); award('candy', 5); return say(St.knockLit); }
     if (id === 'pumpkin') return say(f.pumpkinLit ? "The pumpkin grins. It's good at that." : "The pumpkin would say something if it were lit. It's not. It's thinking about it.");
@@ -1220,6 +1334,13 @@ function placeSign(id) {
     if (id === 'pole') return say(St.poleSign);
     if (id === 'street') return say(St.streetSign);
   }
+  if (S.screen === 'market') {
+    const M = TXT.market;
+    if (id === 'grass' || id === 'market') { if (S.placed.D) return say(M.look.grassSigned); if (!f.askedD) return say(M.scarecrowBusy); return go(M.grassSign, 'D'); }
+    if (id === 'pole') return say(M.poleSign);
+    if (id === 'hay' || id === 'pumpkins') return say(M.haySign);
+    if (id === 'street') return say(M.streetSign);
+  }
   if (S.screen === 'bean') {
     if (id === 'planter') { if (S.placed.C) return say(B.look.planterSigned); if (!f.askedC) return say(B.planterNoAsk); return go(B.planterSign, 'C'); }
     if (id === 'street') return say(B.streetSign);
@@ -1240,6 +1361,7 @@ function askDad() {
   const f = S.flags, H = TXT.dadHints; let key = null;
   if (S.screen === 'street') { if (!f.pumpkinLit) key = 'pumpkinDark'; else if (!f.candyGot) key = 'knock'; else if (!S.placed.A) key = 'signA'; }
   if (S.screen === 'bean') { if (!f.spiderHi) key = 'spider'; else if (!f.catMoved) key = 'glasses'; else if (!f.gusGlasses) key = has('glasses') ? 'giveGlasses' : 'glasses'; else if (!S.placed.C) key = 'signB'; }
+  if (S.screen === 'market') { if (!f.metScarecrow) key = 'scarecrow'; else if (!S.placed.D) key = 'signD'; }
   if (S.screen === 'school') { if (!has('jar') && !f.lit) key = 'noFlame'; else if (!f.upstairs) key = 'stairs'; else if (!f.lit) key = 'light'; }
   if (!key) return say(pick(TXT.dadIdle[S.screen]));
   const n = (S.flags['hint_' + key] || 0); S.flags['hint_' + key] = n + 1;
@@ -1248,7 +1370,7 @@ function askDad() {
 
 // ---------------------------------------------------------------- INPUT
 const cmd = document.getElementById('cmd');
-function run(line) { if (!line.trim()) return; stirred(); cmd.value = ''; echo(line); parse(line); }
+function run(line) { if (!line.trim()) return; cmd.value = ''; echo(line); parse(line); }
 function echo(line) { cmd.placeholder = '> ' + line; }
 cmd.addEventListener('keydown', e => {
   // Arrows get out of the text box and reach the game. Typing any letter
@@ -1256,7 +1378,15 @@ cmd.addEventListener('keydown', e => {
   // the moment the player typed one command - and walking matters more here
   // than moving a caret along a line that is rarely more than four words.
   if (e.key.startsWith('Arrow')) return;
-  if (e.key === 'Enter') { run(cmd.value); e.preventDefault(); }
+  // Enter dismisses the text box before it submits anything. The input holds
+  // focus the whole time you play, so the window handler that dismisses on
+  // Enter never saw it, and the only way past a message was to click - which
+  // is the complaint. Space is deliberately not a dismiss key in here, since
+  // commands contain spaces.
+  if (e.key === 'Enter') {
+    if (msgOpen) { nextMsg(); e.preventDefault(); e.stopPropagation(); return; }
+    run(cmd.value); e.preventDefault();
+  }
   if (e.key === 'Escape') cmd.blur();
   e.stopPropagation();
 });
@@ -1329,7 +1459,7 @@ function hitHotspot(p) { const H = cur().hotspots; let best = null, bestArea = 1
     }
   } return best; }
 function onTap(e) {
-  e.preventDefault(); stirred(); const p = canvasPoint(e);
+  e.preventDefault(); const p = canvasPoint(e);
   if (finaleState) { if (finaleState.stage === 2) { S = START(); awarded = {}; finaleState = null; save(); beginIntro(); } else if (msgOpen) nextMsg(); return; }
   if (msgOpen) { nextMsg(); return; }
   if (endCat()) return;
@@ -1362,9 +1492,15 @@ fit();
 function onEnterQuiet() { dadX = S.x - 22; dadY = S.y + 2; }
 function beginIntro() { S.flags.seen_street = true; say([...TXT.intro]); }
 (function boot() {
+  // Resume without asking. This used to be a confirm(), which meant one
+  // stray click on Cancel threw the whole game away - the easiest way to
+  // lose progress in the game was a dialog box asking whether you wanted to
+  // keep it. Starting over is a deliberate act now: type RESTART.
   const l = load();
-  if (l && !l.done && confirm("Continue where you left off?")) { S = l; awarded = {}; for (const k in S.got) awarded[k] = true; onEnterQuiet(); }
-  else { S = START(); beginIntro(); }
+  if (l && !l.done) {
+    S = l; awarded = {}; for (const k in S.got) awarded[k] = true; onEnterQuiet();
+    say('Back where you left off. ' + S.score + ' of ' + MAX_SCORE + ' so far. Type RESTART if you would rather begin again.');
+  } else { S = START(); beginIntro(); }
   setInterval(() => { update(); render(); }, 1000 / 15);
 })();
 </script>
