@@ -491,7 +491,7 @@ const SCREENS = {
       market:    { x: 36,  y: 48,  w: 250, h: 116, name: 'the market', syn: ['stall','stalls','farmers market','awning','shop','building'] },
       scarecrow: { x: 88,  y: 134, w: 34,  h: 48,  name: 'the Scarecrow', syn: ['scarecrow','straw man','candidate','corn guy'], sx: 105, sy: 182 },
       hay:       { x: 208, y: 116, w: 66,  h: 52,  name: 'hay bales', syn: ['hay','bales','bale','straw'] },
-      squirrel:  { x: 244, y: 108, w: 28,  h: 22,  name: 'squirrel', syn: ['grey squirrel','acorn','rodent','tail'], when: 'squirrelHere', sx: 258, sy: 128 },
+      squirrel:  { x: 244, y: 108, w: 28,  h: 22,  name: 'squirrel', syn: ['grey squirrel','acorn','rodent','tail'], unless: 'squirrelGone', sx: 258, sy: 128 },
       pumpkins:  { x: 254, y: 138, w: 66,  h: 34,  name: 'pile of pumpkins', syn: ['pumpkins','pumpkin pile','heap','big pumpkin'] },
       stalls:    { x: 60,  y: 108, w: 150, h: 58,  name: 'dark stalls', syn: ['stall','dark','under the awning','crates','shadow','back of the stalls'] },
       pole:      { x: 10,  y: 0,   w: 24,  h: 168, name: 'hydro pole', syn: ['pole','post','wires','hydro'] },
@@ -855,13 +855,24 @@ const TXT = {
 // ---------------------------------------------------------------- STATE
 const START = () => ({
   screen: 'street', x: 40, y: 165, facing: 1,
-  score: 0, got: {}, flags: { squirrelHere: true }, inv: ['bucket'], signs: 4, placed: {}, names: {},
+  score: 0, got: {}, flags: {}, inv: ['bucket'], signs: 4, placed: {}, names: {},
   seenIntro: false, done: false,
 });
 let S = START();
 const SAVE_KEY = 'jamesquest-small-v1';
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
-function load() { try { const s = localStorage.getItem(SAVE_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+function load() {
+  try {
+    const s = localStorage.getItem(SAVE_KEY); if (!s) return null;
+    const g = JSON.parse(s);
+    // A save from an older build is missing whatever was added since, and
+    // the code reads those keys without asking. Fill them in on the way in
+    // rather than guarding every use.
+    const d = START();
+    for (const k in d) if (g[k] === undefined || g[k] === null) g[k] = d[k];
+    return g;
+  } catch (e) { return null; }
+}
 // Save whenever the game goes away: the tab is closed or hidden, or the
 // overlay is shut and the iframe torn down. award() and goScreen() already
 // save at every scoring moment, so this is only the few steps since the
@@ -1104,7 +1115,7 @@ const SURVEY = {
     bits.push(f.metScarecrow
       ? "The Scarecrow is standing by the front, looking pleased with himself and his platform."
       : "A scarecrow is standing by the front with a sign propped against his boot. He does not look like a spooky one.");
-    if (f.squirrelHere) bits.push("A grey squirrel is sitting up on top of the hay bales with an acorn, keeping an eye on your bucket.");
+    if (!f.squirrelGone) bits.push("A grey squirrel is sitting up on top of the hay bales with an acorn, keeping an eye on your bucket.");
     else if (f.squirrelFed) bits.push("The hay bales have no squirrel on them any more, because the squirrel has gone up a tree with your candy.");
     else bits.push("The hay bales have no squirrel on them any more, because of the shouting.");
     bits.push("There is a good flat strip of grass along the road, and a hydro pole on the left with wires going off in four directions.");
@@ -1205,7 +1216,7 @@ function render() {
     // SPR.scarecrow to fall back to, and drawSprite would read .frames off
     // undefined and take the whole render down with it.
     if (IMGSPR.scarecrow) draws.push({ y: H.scarecrow.sy, f: () => drawImgSprite(IMGSPR.scarecrow, 0, H.scarecrow.sx, H.scarecrow.sy, false, sc.scale || 1) });
-    if (S.flags.squirrelHere && IMGSPR.squirrel)
+    if (!S.flags.squirrelGone && IMGSPR.squirrel)
       draws.push({ y: H.squirrel.sy, f: () => drawImgSprite(IMGSPR.squirrel, 0, H.squirrel.sx, H.squirrel.sy, false, 1) });
     if (S.placed.D) draws.push({ y: 176, f: () => drawSprite(SPR.sign, 0, 196, 176) });
   }
@@ -1274,7 +1285,8 @@ const PANELS = {
   help1: {
     title: 'HOW TO PLAY  (1 of 2)',
     lines: () => [
-      'You type what you want to do. Short is fine.',
+      'Type what you want to do, in your own words. You',
+      'do not have to get it exactly right.',
       '',
       '  LOOK                 see where you are',
       '  LOOK AT THE PUMPKIN  look at one thing',
@@ -1284,12 +1296,19 @@ const PANELS = {
       '  PLACE SIGN ON OUR LAWN',
       '  BUCKET               see what you are carrying',
       '',
+      'Other words work just as well. GRAB, PICK UP and',
+      'GET all take. EXAMINE, CHECK and READ all look.',
+      'PET, SAY HI TO and CHAT all talk. PUT, GIVE and',
+      'LIGHT are all ways of using. GIVE DAD THE SPIDER',
+      'works as well as USE SPIDER ON DAD. Spelling is',
+      'allowed to be wobbly.',
+      '',
       'Hold the LEFT and RIGHT arrow keys to walk, and',
       'walk off the side of the screen to go somewhere',
       'new. Press Enter to get past a box of writing.',
       '',
-      'Stuck? Type ASK DAD. He will give you a nudge,',
-      'and a bigger one if you ask him again.',
+      'Stuck? Type ASK DAD. He gives you a nudge, and a',
+      'bigger one if you ask him again.',
     ],
   },
   help2: {
@@ -1418,25 +1437,71 @@ function drawFinale() {
 }
 
 // ---------------------------------------------------------------- PARSER
+// Say yes to as many words as possible. A six year old types what he
+// means, not what a 1988 parser wanted, and every word in here that is not
+// recognised is a turn where nothing happened. These are matched longest
+// first within each verb, so 'look inside' beats 'look'.
 const VERBS = {
-  look: ['look at', 'look', 'examine', 'l', 'inspect', 'see', 'check', 'read'],
-  take: ['take', 'get', 'pick up', 'grab', 'pickup'],
-  use: ['use', 'put', 'give', 'light', 'place', 'plant', 'hand'],
-  talk: ['talk to', 'talk', 'speak to', 'speak', 'say hi to', 'say hello to', 'hello', 'hi', 'chat with', 'pet', 'knock on', 'knock', 'ask'],
+  look: ['look at', 'look inside', 'look in', 'look under', 'look behind', 'look through', 'look', 'examine', 'inspect', 'inspect the', 'x', 'l', 'see', 'check', 'read', 'watch', 'study', 'peek at', 'peek in', 'peek', 'what is', "what's", 'describe'],
+  take: ['take', 'get', 'pick up', 'pickup', 'pick', 'grab', 'collect', 'carry', 'keep', 'pocket', 'hold', 'steal', 'borrow', 'bring'],
+  use: ['use', 'put', 'give', 'light', 'place', 'plant', 'hand', 'offer', 'feed', 'throw', 'point', 'stick', 'tie', 'pour', 'rub', 'try'],
+  touch: ['touch', 'poke', 'prod', 'feel', 'tap', 'press', 'push on', 'nudge'],
+  talk: ['talk to', 'talk', 'speak to', 'speak', 'say hi to', 'say hello to', 'say hi', 'say hello', 'hello', 'hiya', 'hi', 'chat with', 'chat to', 'chat', 'greet', 'meet', 'pet', 'stroke', 'pat', 'cuddle', 'scratch', 'tickle', 'knock on', 'knock', 'ask'],
   sign: ['place sign', 'put sign', 'put up sign', 'plant sign', 'sign here', 'put a sign', 'place a sign'],
   // 'help' is not here any more: it opens the Help panel, and ASK DAD is
   // the hint. A player who types HELP wants to know how to play.
   dad: ['ask dad', 'dad', 'hint', 'what now', 'what do i do'],
   inv: ['inventory', 'i', 'inv', 'bag', 'bucket', 'what do i have'],
-  climb: ['climb', 'go up', 'up'],
-  open: ['open'],
+  climb: ['climb', 'climb up', 'go up', 'walk up', 'run up', 'up'],
+  open: ['open', 'unlock', 'push open', 'push', 'pull'],
+  drop: ['drop', 'put down', 'leave', 'throw away', 'get rid of'],
   save: ['save'], restore: ['restore', 'load'], restart: ['restart', 'start over'],
   eat: ['eat', 'unwrap'],
   // Not a general verb: the leaves are the only thing on any screen worth
   // going through with both feet, and every word for doing that lands here.
-  kick: ['kick', 'search', 'jump in', 'jump into', 'rummage in', 'rummage', 'dig in', 'dig through', 'go through'],
+  kick: ['kick', 'search', 'jump in', 'jump into', 'rummage in', 'rummage', 'dig in', 'dig through', 'go through', 'wade through', 'stomp'],
 };
 const FILLER = /\b(the|a|an|to|at|please|up|some|my|that|this)\b/g;
+// The four screens in the order they sit along the street, and the words a
+// player might call each one, so GO TO THE MARKET walks the right way.
+const ORDER = ['street', 'bean', 'market', 'school'];
+const PLACES = {
+  street: ['street', 'our street', 'home', 'our house', 'house', 'road'],
+  bean: ['bean', 'coffee shop', 'coffee', 'cafe', 'shop', 'gus'],
+  market: ['market', 'farmers market', 'farmer market', 'stalls', 'scarecrow'],
+  school: ['school', 'big school', 'clock tower', 'tower', 'lantern'],
+};
+// LOOK with one of these after it is still just LOOK. "look around" is the
+// most natural way to say it and it was landing on the shrug, which is the
+// worst possible first impression of a parser.
+// Things that are alive, for the verbs where that is the difference: you
+// pat a cat and you examine a hay bale.
+const ALIVE = ['cat', 'dad', 'gus', 'spider', 'squirrel', 'tot', 'scarecrow', 'neighbour', 'wcat'];
+const LOOKALL = /^(a?round|about|here|all a?round|everywhere|every ?where|the place|place|the room|room|scene|outside|surroundings|area|where (i am|we are)|at (everything|the scene|this place))$/;
+// Scenery that is in every picture. The first is a hotspot to redirect to
+// where the screen has a sensible one; the rest are answers.
+const SCENERY = [
+  { w: /^(ground|floor|pavement|sidewalk|path|concrete|stones?)$/, to: { street: 'street', bean: 'street', market: 'street', school: 'plaza' } },
+  { w: /^(sky|clouds?|sunset|sun|moon|stars?|night|space)$/, say: "The sky is going from orange to purple, the way it only does at the end of October. No moon yet. One aeroplane, very high up, blinking." },
+  { w: /^(trees?|branches|maples?)$/, to: { street: 'pole', market: 'pole' }, say: "Trees all round, most of the way through dropping everything they own on the ground." },
+  { w: /^(houses|the houses|neighbourhood|neighborhood|town|city|guelph)$/, say: "Your bit of Guelph, on the one night of the year when every single door is worth knocking on." },
+  { w: /^(air|wind|weather|cold|smell|sounds?|noise)$/, say: "Cold enough for your breath to show. Woodsmoke somewhere. Somebody two streets over shrieking happily about something." },
+  { w: /^(costume|my costume|outfit|cape|suit)$/, say: null, self: true },
+  { w: /^(bucket|pail|basket)$/, item: 'bucket' },
+  { w: /^(score|points|how (am i doing|many points))$/, say: null, score: true },
+];
+function scenery(noun) {
+  for (const e of SCENERY) {
+    if (!e.w.test(noun)) continue;
+    if (e.self) return doVerb('look', 'self');
+    if (e.score) return say(`${S.score} points out of ${MAX_SCORE}. ${S.score === MAX_SCORE ? 'Every single one. Look at you.' : 'There is more out there.'}`);
+    if (e.item && has(e.item)) return doVerb('look', e.item);
+    const spot = e.to && e.to[S.screen];
+    if (spot && cur().hotspots[spot]) return say(lookAt(spot));
+    if (e.say) return say(e.say);
+  }
+  return false;
+}
 // The one thing that obviously goes with a thing. So LIGHT THE PUMPKIN and
 // USE THE PUMPKIN both work when the candle is in the bucket, rather than
 // only the exact USE CANDLE ON PUMPKIN. Requiring the full phrasing makes it
@@ -1477,8 +1542,29 @@ const FUN_SCORED = {
                                  "Dad looks around. Dad: \"Did you hear that?\" You did. Neither of you mentions it again."] },
 };
 
+// Dad is at the keyboard typing what James says out loud, so what arrives
+// is a sentence rather than a command: "can we look at the squirrel",
+// "I want to take the candle", "let's go to the market please". Peel those
+// off the front and the back until a command is left.
+const PREAMBLE = /^(i(?: would| 'd| d)? (?:want|like|wanna|would like|need|am going)(?: to)?|i(?:'| )?ll|i will|i am going to|im going to|can (?:i|we|you)|could (?:i|we|you)|may i|shall (?:i|we)|should (?:i|we)|let(?:'| )?s|lets|let me|we (?:can|should|could|will)|how about|what about|try to|try|go on and|please|now|then|and|so|ok(?:ay)?|um+|uh+|er+|hey|right|james (?:says|wants)(?: to)?|he (?:says|wants)(?: to)?|dad|daddy)\s+/;
+const TRAILER = /\s+(please|now|ok(?:ay)?|thanks|thank you|yeah|then|too|as well|i think|i guess)$/;
+function strip(s) {
+  let out = s, n = 0;
+  while (n++ < 6) {
+    const before = out;
+    out = out.replace(PREAMBLE, '').replace(TRAILER, '').trim();
+    if (out === before) break;
+  }
+  // "dad" on its own is the hint, so never let the peel eat the whole line
+  return out || s;
+}
 function parse(raw) {
   let s = raw.toLowerCase().replace(/[^a-z0-9' ]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!s) return;
+  // ASK DAD and the other bare commands have to survive the peel, so they
+  // are matched on the raw line first; everything after this sees the
+  // stripped one.
+  if (!/^(dad|ask dad|help|hint|i|inv|bucket|look|wait|now|then|ok|okay)$/.test(s)) s = strip(s);
   if (!s) return;
   // sign and dad first (multi-word)
   if (VERBS.sign.some(v => s.startsWith(v)) || (s.includes('sign') && /(place|put|plant)/.test(s))) { const rest = s.replace(/.*sign( on| in| at)?/, '').replace(FILLER, ' ').trim(); return placeSign(findHotspot(rest)); }
@@ -1506,6 +1592,19 @@ function parse(raw) {
   if (VERBS.restart.includes(s)) { if (confirm('Start over from the beginning?')) { S = START(); awarded = {}; save(); beginIntro(); } return; }
   // Typed movement, so a player who would rather type than hold a key can
   // still get about: GO LEFT, WALK RIGHT, EAST, W.
+  const place = s.match(/^(?:go|walk|head|move|run)\s+(?:back\s+)?(?:to|towards|toward|into|in)?\s*(?:the\s+)?(.+)$/);
+  if (place) {
+    const want = Object.keys(PLACES).find(k => PLACES[k].some(a => place[1] === a || place[1] === 'the ' + a));
+    if (want) {
+      const here = ORDER.indexOf(S.screen), there = ORDER.indexOf(want);
+      if (here === there) return say('You are already here.');
+      const d = there > here ? 'right' : 'left';
+      walkTarget = { x: d === 'right' ? 316 : 4, y: S.y };
+      return say(Math.abs(there - here) > 1
+        ? `That is a way off yet. You set off ${d === 'right' ? 'up' : 'back down'} the street.`
+        : `You set off ${d === 'right' ? 'up' : 'back down'} the street.`);
+    }
+  }
   const dir = s.match(/^(?:go|walk|head|move)?\s*(left|right|west|east|w|e)$/);
   if (dir) {
     const d = { west: 'left', e: 'right', east: 'right', w: 'left', left: 'left', right: 'right' }[dir[1]];
@@ -1529,8 +1628,8 @@ function parse(raw) {
     if (f.wcatWaved) return say(TXT.street.wcatAgain);
     f.wcatWaved = true; award('wcat', 5); return say(TXT.street.wcatWave);
   }
-  if (yelled && S.screen === 'market' && S.flags.squirrelHere) {
-    S.flags.squirrelHere = false; return say([...FUN.shout.slice(0, 1), ...TXT.market.squirrelShout]);
+  if (yelled && S.screen === 'market' && !S.flags.squirrelGone) {
+    S.flags.squirrelGone = true; return say([...FUN.shout.slice(0, 1), ...TXT.market.squirrelShout]);
   }
   if (waved) return say(FUN.wave);
   if (yelled) return say(FUN.shout);
@@ -1542,7 +1641,7 @@ function parse(raw) {
   if (bare === 'xyzzy' || bare === 'plugh') {
     const g = FUN_SCORED.xyzzy; award(g.key, 5); return say(g.lines);
   }
-  const shw = s.match(/^(?:show|introduce) (.+?) (?:to|the) (.+)$/);
+  const shw = s.match(/^(?:show|introduce|give|hand|offer|pass) (.+?) (?:to|the) (.+)$/);
   if (shw) {
     const ends = [shw[1], shw[2]].map(x => x.replace(FILLER, ' ').replace(/\s+/g, ' ').trim());
     const asItem = ends.map(findItem), asSpot = ends.map(findHotspot);
@@ -1556,19 +1655,40 @@ function parse(raw) {
   let verb = null, rest = s;
   for (const v in VERBS) { for (const syn of VERBS[v].sort((a, b) => b.length - a.length)) { if (s === syn || s.startsWith(syn + ' ')) { verb = v; rest = s.slice(syn.length).trim(); break; } } if (verb) break; }
   if (verb === 'use') {
-    const m = rest.match(/^(.*?) (on|with|to|in|into|onto) (.*)$/);
-    if (m) { const a = m[1].replace(FILLER, ' ').replace(/\s+/g, ' ').trim(), b = m[3].replace(FILLER, ' ').replace(/\s+/g, ' ').trim(); const it = findItem(a) || (a.includes('dad') ? 'dad' : null); const target = findHotspot(b) || findItem(b); if (!it) return (a.includes('spider') && f0().dadBrave) ? say(TXT.bean.spiderDadAgain) : say(`You don't have ${a}.`); if (target && cur().hotspots[target]) return walkToThen(target, () => useOn(it, target)); return useOn(it, target); }
+    const m = rest.match(/^(.*?) (on|with|to|in|into|onto|at|under|over|for|against|near|inside|towards|toward|around) (.*)$/);
+    if (m) {
+      const a = m[1].replace(FILLER, ' ').replace(/\s+/g, ' ').trim(), b = m[3].replace(FILLER, ' ').replace(/\s+/g, ' ').trim();
+      let it = findItem(a) || (a.includes('dad') ? 'dad' : null);
+      let target = findHotspot(b) || findItem(b);
+      // Said backwards - LIGHT THE PUMPKIN WITH THE CANDLE, USE PUMPKIN ON
+      // CANDLE. If the thing named first is not in the bucket and the thing
+      // named second is, he meant it the other way round.
+      if (!it) {
+        const it2 = findItem(b) || (b.includes('dad') ? 'dad' : null), t2 = findHotspot(a);
+        if (it2 && t2) { it = it2; target = t2; }
+      }
+      if (!it) return (a.includes('spider') && f0().dadBrave) ? say(TXT.bean.spiderDadAgain) : say(`You don't have ${a}.`);
+      if (target && cur().hotspots[target]) return walkToThen(target, () => useOn(it, target));
+      return useOn(it, target);
+    }
   }
   rest = rest.replace(FILLER, ' ').replace(/\s+/g, ' ').trim();
+  if (verb === 'look' && LOOKALL.test(rest)) rest = '';
   // The signs are not an ITEM - they are a count - so LOOK AT THE SIGNS
   // fell through to "that is not here" while four of them were in the
   // bucket the player was staring at.
   if (/^(lawn |election |dan |the )*signs?( bundle)?$/.test(rest) && (!verb || verb === 'look')) return say(signLook());
+  if (/^(me|myself|my costume|costume|my ?self)$/.test(rest) || (rest && rest === nm('hero').toLowerCase())) return doVerb(verb || 'look', 'self');
+  if (/^(dad|my dad|daddy|papa)$/.test(rest) || (rest && rest === nm('dad').toLowerCase())) return doVerb(verb || 'look', 'dad');
   if (/^(dad )?(carry me|piggyback|pick me up|shoulders)/.test(rest) || /carry me|piggyback/.test(s)) return S.screen === 'school' ? climbStairs() : say(TXT.school.useDadElse);
   if (!verb) { // maybe a bare noun: treat as look
-    const h = findHotspot(rest) || findItem(rest); if (h) return doVerb('look', h); return say(pick(TXT.unknown));
+    const h = findHotspot(rest) || findItem(rest); if (h) return doVerb('look', h);
+    if (scenery(rest) !== false) return;
+    return say(pick(TXT.unknown));
   }
   if (verb === 'use') {
+    const pair = twoThings(rest);
+    if (pair) return cur().hotspots[pair[1]] ? walkToThen(pair[1], () => useOn(pair[0], pair[1])) : useOn(pair[0], pair[1]);
     const h = findHotspot(rest); const it = findItem(rest);
     if (h) {
       const want = PAIRS[h];
@@ -1577,17 +1697,32 @@ function parse(raw) {
     }
     if (it) return say(`Use ${ITEMS[it].name} on what?`); return say(pick(TXT.unknown));
   }
+  if (verb === 'touch') {
+    const h = findHotspot(rest) || findItem(rest);
+    if (!h) return scenery(rest) !== false ? undefined : say(pick(TXT.nothingHere));
+    return doVerb(ALIVE.includes(h) ? 'talk' : 'look', h);
+  }
   if (verb === 'kick') {
     const h = findHotspot(rest) || (S.screen === 'street' ? 'leaves' : null);
     if (S.screen === 'street' && (h === 'leaves' || h === 'street' || h === 'nlawn')) return walkToThen('leaves', () => say(kickLeaves()));
     return say(h ? pick(TXT.cantUse) : pick(TXT.unknown));
   }
+  if (verb === 'drop') {
+    const it = findItem(rest);
+    if (it === 'bucket' || !rest) return say("You are keeping the bucket. The bucket is the whole point.");
+    if (it) return say(`You hang on to ${ITEMS[it].name}. It will be useful. Most things are.`);
+    return say("You are not carrying that, so there is nothing to put down.");
+  }
   if (verb === 'eat') return has('candy') ? say(TXT.street.eatCandy) : say("Nothing to eat. Yet.");
-  if (verb === 'climb') return doVerb('use', S.screen === 'school' ? 'stairs' : null);
+  if (verb === 'climb') {
+    if (S.screen !== 'school') return say("Nothing here is for climbing, and Dad has views about the ones that look like they are.");
+    return walkToThen('stairs', () => useOn(null, 'stairs'));
+  }
   if (verb === 'open') return doVerb('use', findHotspot(rest) || (S.screen === 'bean' ? 'door' : S.screen === 'school' ? 'bigdoor' : null));
   if (verb === 'talk' && (rest === 'dad' || rest === 'to dad')) return askDad();
   const target = findHotspot(rest) || findItem(rest);
   if (!target && !rest && verb === 'talk' && S.screen === 'street') return doVerb('talk', 'neighbour');
+  if (!target && rest && scenery(rest) !== false) return;
   if (!target) {
     if (!rest) {
       if (verb !== 'look') return say(`${verb.charAt(0).toUpperCase() + verb.slice(1)} what?`);
@@ -1600,16 +1735,62 @@ function parse(raw) {
   return doVerb(verb, target);
 }
 function f0() { return S.flags; }
+// How far two words are apart, capped so a long word does not cost a long
+// loop. Used only as the last resort below.
+function dist(a, b) {
+  if (Math.abs(a.length - b.length) > 2) return 9;
+  const prev = []; for (let j = 0; j <= b.length; j++) prev[j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    let last = prev[0]; prev[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const t = prev[j];
+      prev[j] = Math.min(prev[j] + 1, prev[j - 1] + 1, last + (a[i - 1] === b[j - 1] ? 0 : 1));
+      last = t;
+    }
+  }
+  return prev[b.length];
+}
+// A near miss counts. The player is six: scarcrow, pumkin, squirel and
+// lanturn are all things he will type, and a parser that says "nothing like
+// that here" to a thing that is plainly there is the fastest way to make
+// him stop. One letter out for a short word, two for a long one.
+function near(noun, n) {
+  const slack = n.length >= 7 ? 2 : n.length >= 4 ? 1 : 0;
+  if (!slack) return false;
+  if (dist(noun, n) <= slack) return true;
+  // or one word of the phrase he typed is a near miss for this name
+  return noun.split(' ').some(w => w.length >= 4 && dist(w, n) <= slack);
+}
 function findHotspot(noun) {
   if (!noun) return null; noun = noun.replace(/\[cat\]/g, FILL.cat.toLowerCase());
   const H = cur().hotspots;
   const namesOf = id => { const h = H[id]; return [id, h.name.toLowerCase().replace(/^the /, ''), nm('cat').toLowerCase() === noun && id === 'cat' ? noun : null, ...(h.syn || []).map(x => x.replace('[cat]', nm('cat').toLowerCase()))].filter(Boolean); };
   for (const id in H) if (namesOf(id).some(n => noun === n || noun === 'the ' + n)) return id;
   for (const id in H) if (namesOf(id).some(n => noun.endsWith(' ' + n) || n.endsWith(' ' + noun))) return id;
-  for (const id in H) if (namesOf(id).some(n => noun.includes(n) || n.includes(noun))) return id;
+  for (const id in H) if (namesOf(id).some(n => (n.length >= 4 && noun.includes(n)) || (noun.length >= 4 && n.includes(noun)))) return id;
+  for (const id in H) if (namesOf(id).some(n => near(noun, n))) return id;
   return null;
 }
-function findItem(noun) { if (!noun) return null; for (const id in ITEMS) { if (!has(id)) continue; const names = [id, ITEMS[id].name.toLowerCase()]; if (names.some(n => noun === n || noun.includes(n) || n.includes(noun))) return id; } if (noun.includes('dad')) return 'dad'; return null; }
+function twoThings(rest) {
+  const w = rest.split(' ').filter(Boolean);
+  for (let i = 1; i < w.length; i++) {
+    const L = w.slice(0, i).join(' '), R = w.slice(i).join(' ');
+    for (const [a, b] of [[L, R], [R, L]]) {
+      const it = findItem(a) || (a.includes('dad') ? 'dad' : null);
+      if (!it) continue;
+      const target = findHotspot(b) || (b.includes('dad') ? 'dad' : null);
+      if (target && target !== it) return [it, target];
+    }
+  }
+  return null;
+}
+function findItem(noun) {
+  if (!noun) return null;
+  for (const id in ITEMS) { if (!has(id)) continue; const names = [id, ITEMS[id].name.toLowerCase()]; if (names.some(n => noun === n || noun.includes(n) || n.includes(noun))) return id; }
+  for (const id in ITEMS) { if (!has(id)) continue; if ([id, ITEMS[id].name.toLowerCase()].some(n => near(noun, n))) return id; }
+  if (noun.includes('dad')) return 'dad';
+  return null;
+}
 function lookAround() { return enterText(); }
 
 // Bare LOOK names everything on the screen. This is the typed answer to "how
@@ -1667,6 +1848,24 @@ function walkToThen(id, fn) {
 }
 function doVerb(verb, id) {
   if (!id) return say(pick(TXT.unknown));
+  // Dad and yourself are not hotspots on any screen, so LOOK AT DAD used to
+  // fall all the way through to the shrug. They are the two things a player
+  // looks at first.
+  if (id === 'dad') {
+    if (verb === 'talk') return askDad();
+    if (verb === 'take') return say("You take Dad's hand. He holds on, and does not make anything of it.");
+    if (verb === 'use') return say("Use Dad on what? He is good for reaching things and for lifting.");
+    return say(S.screen === 'bean' && !S.flags.spiderHi
+      ? "Dad, standing a sensible distance from that door, hands in his pockets, being extremely normal about a spider."
+      : S.flags.dadBrave && S.screen === 'bean'
+        ? "Dad, a changed man, standing nearly all the way up to the door."
+        : "Dad. Big coat, no costume, which he says is a costume of a dad. He is carrying nothing, because you are carrying the bucket, and that was the deal.");
+  }
+  if (id === 'self') {
+    if (verb === 'take') return say("You pick yourself up. Nothing happens. You put yourself back down.");
+    if (verb === 'talk') return say("You tell yourself you are doing a great job. You are right.");
+    return say(`You are in your ${FILL.costume}, and it is, frankly, superb. Bucket in one hand. Hood up. Ready.`);
+  }
   if (ITEMS[id] && has(id)) { // inventory item
     if (verb === 'look') { const l = ITEMS[id].look; return say(typeof l === 'function' ? l() : l); }
     if (verb === 'use') return say(`Use ${ITEMS[id].name} on what?`);
@@ -1704,7 +1903,7 @@ function lookAt(id) {
       return L.pumpkins;
     }
     if (id === 'candle' && (has('candle') || f.pumpkinLit)) return L.porchNoCandle;
-    if (id === 'squirrel') return f.squirrelFed ? L.squirrelFed : (!f.squirrelHere ? L.squirrelGone : L.squirrel);
+    if (id === 'squirrel') return f.squirrelFed ? L.squirrelFed : (f.squirrelGone ? L.squirrelGone : L.squirrel);
   }
   if (S.screen === 'bean') {
     if (id === 'door') return has('spider') ? L.doorEmpty : (f.spiderHi ? L.doorClear : L.door);
@@ -1780,7 +1979,7 @@ function talkTo(id) {
     }
   }
   if (S.screen === 'market' && id === 'squirrel') {
-    if (!f.squirrelHere) return say(M.look.squirrelGone);
+    if (f.squirrelGone) return say(f.squirrelFed ? M.look.squirrelFed : M.look.squirrelGone);
     if (f.metSquirrel) return say(M.talkSquirrelAgain);
     f.metSquirrel = true; return say(M.talkSquirrel);
   }
@@ -1894,9 +2093,9 @@ function useOn(item, id) {
     return say(missLine('mitten', id) || "It is somebody's mitten. Somebody who is not that.");
   }
   if (item === 'candy' && S.screen === 'market' && (id === 'squirrel' || id === 'hay')) {
-    if (!f.squirrelHere) return say(TXT.market.look.squirrelGone);
     if (f.squirrelFed) return say(TXT.market.look.squirrelFed);
-    f.squirrelFed = true; f.squirrelHere = false; award('squirrel', 5);
+    if (f.squirrelGone) return say(TXT.market.look.squirrelGone);
+    f.squirrelFed = true; f.squirrelGone = true; award('squirrel', 5);
     return say(TXT.market.squirrelCandy);
   }
   if (item === 'candy') { if (S.screen === 'bean' && id === 'cat') return say(`${FILL.cat} sniffs the candy and gives you a look. Cats don't do candy.`); if (id === 'gus' || id === 'neighbour') return say("That's yours, bud. Keep it."); return say(missLine('candy', id) || St.eatCandy); }
@@ -1976,6 +2175,7 @@ cmd.addEventListener('keydown', e => {
   // is the complaint. Space is deliberately not a dismiss key in here, since
   // commands contain spaces.
   if (e.key === 'Enter') {
+    if ((panel || bucketOpen) && cmd.value.trim()) { panel = null; bucketOpen = false; run(cmd.value); e.preventDefault(); e.stopPropagation(); return; }
     if (panel) { panel = panel === 'help1' ? 'help2' : null; e.preventDefault(); e.stopPropagation(); return; }
     if (bucketOpen) { bucketOpen = false; e.preventDefault(); e.stopPropagation(); return; }
     if (msgOpen) { nextMsg(); e.preventDefault(); e.stopPropagation(); return; }
@@ -2044,8 +2244,9 @@ const MIN_TAP = 20;
 // which gives away the one puzzle on the screen before you have solved it.
 // The sprite was already gated on the same flag; the hit test was not.
 function live(h, id) {
-  if (h.when && !S.flags[h.when]) return false;   // not revealed yet
-  if (h.item && has(id)) return false;            // already in the bucket
+  if (h.when && !S.flags[h.when]) return false;     // not revealed yet
+  if (h.unless && S.flags[h.unless]) return false;  // there, then gone
+  if (h.item && has(id)) return false;              // already in the bucket
   return true;
 }
 
