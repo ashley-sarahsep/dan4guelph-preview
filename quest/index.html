@@ -56,7 +56,7 @@
 
 <script>
 // ============================================================================
-// JAMES'S QUEST: The Perils of the Royal City  (small edition)
+// JAMES'S QUEST: A Royal City Wander  (small edition)
 // One file. 320x200. Sixteen colours. No em dashes. Nothing scary.
 // Backgrounds: assets/bg/street.png, bean.png, school.png. Painted renders at
 // 960x600, not EGA - see scenes/backgrounds.py.
@@ -519,7 +519,7 @@ const SCREENS = {
 // ---------------------------------------------------------------- SCRIPT
 // Every line of text lives here. Edit freely. No em dashes.
 const TXT = {
-  title: ["JAMES'S QUEST", "The Perils of the Royal City"],
+  title: ["JAMES'S QUEST", "A Royal City Wander"],
   intro: [
     "It's Halloween night in the Royal City. That's Guelph. We call it that because it's royal.",
     "Every year the Great Pumpkin Lantern on top of the school lights up, and THAT is when trick-or-treating starts. Everyone knows this.",
@@ -831,7 +831,7 @@ const TXT = {
   ],
   credits: (score, signs) => [
     "JAMES'S QUEST",
-    "The Perils of the Royal City",
+    "A Royal City Wander",
     "",
     // First name only. The campaign settled on publishing "James"; a
     // surname beside the candidate's own name and the city identifies the
@@ -1279,12 +1279,17 @@ function drawTitle() {
   g.addColorStop(0, '#0a0612'); g.addColorStop(0.6, '#1a1030'); g.addColorStop(1, '#30193c');
   ctx.fillStyle = g; ctx.fillRect(0, 0, 320, 200);
   if (bgImgs.title) ctx.drawImage(bgImgs.title, 0, 0, 320, 200);
-  ctx.fillStyle = EGA[12]; ctx.fillRect(46, 58, 228, 1); ctx.fillRect(46, 141, 228, 1);
-  centreText(renameText("JAMES'S QUEST").toUpperCase(), 68, 14, 3);
-  centreText('The Perils of the Royal City', 102, 11, 1);
-  centreText('A Halloween adventure for one cool kid', 120, 7, 1);
-  centreText('and his dad', 132, 7, 1);
-  if (Math.floor(tick / 12) % 2) centreText('Press Enter to begin', 164, 15, 1);
+  // The rules bracket the lettering, so they move when it does: the cell
+  // is 10 tall and the lower rule was at 141 with a line of text running
+  // from 132 to 142, straight through it.
+  ctx.fillStyle = EGA[12]; ctx.fillRect(46, 58, 228, 1); ctx.fillRect(46, 147, 228, 1);
+  centreText(renameText("JAMES'S QUEST").toUpperCase(), 68, 15, 3);
+  centreText('A Royal City Wander', 103, 11, 1);
+  // one sentence over two lines: 55 characters will not fit on a screen
+  // that holds 53 at this cell width
+  centreText('A little Halloween adventure for a cool kid', 121, 7, 1);
+  centreText('and his dad.', 133, 7, 1);
+  if (Math.floor(tick / 12) % 2) centreText('Press Enter to begin', 166, 15, 1);
 }
 function wrap(s, maxChars) { const words = s.split(' '), lines = []; let line = ''; for (const w of words) { if ((line + ' ' + w).trim().length > maxChars) { lines.push(line.trim()); line = w; } else line += ' ' + w; } if (line.trim()) lines.push(line.trim()); return lines; }
 
