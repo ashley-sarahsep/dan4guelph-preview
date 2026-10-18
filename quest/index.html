@@ -485,6 +485,7 @@ const SCREENS = {
       scarecrow: { x: 88,  y: 134, w: 34,  h: 48,  name: 'the Scarecrow', syn: ['scarecrow','straw man','candidate','corn guy'], sx: 105, sy: 182 },
       hay:       { x: 208, y: 116, w: 66,  h: 52,  name: 'hay bales', syn: ['hay','bales','bale','straw'] },
       pumpkins:  { x: 254, y: 138, w: 66,  h: 34,  name: 'pile of pumpkins', syn: ['pumpkins','pumpkin pile','heap','big pumpkin'] },
+      stalls:    { x: 60,  y: 108, w: 150, h: 58,  name: 'dark stalls', syn: ['stall','dark','under the awning','crates','shadow','back of the stalls'] },
       pole:      { x: 10,  y: 0,   w: 24,  h: 168, name: 'hydro pole', syn: ['pole','post','wires','hydro'] },
       grass:     { x: 40,  y: 162, w: 256, h: 16,  name: 'grass strip', syn: ['grass','verge','strip','lawn'] },
       street:    { x: 0,   y: 178, w: 320, h: 22,  name: 'road', syn: ['street','pavement','sidewalk'] },
@@ -689,6 +690,8 @@ const TXT = {
       grassSigned: "The grass strip, with a DAN ATKINSON sign standing in it. The Scarecrow says it brings up the tone.",
       scarecrow: "A scarecrow. Standing up, stitched smile, very serious hat. Propped by his boot is a sign: VOTE FOR CORN.",
       scarecrowMet: "The Scarecrow, standing a bit taller than before. Candidates do that once somebody has listened.",
+      stallsPlain: "The back of the stalls, under the awning. It is properly dark under there. Something moved. Probably a draught. Probably.",
+      stallsDone: "The back of the stalls, with a very small cat asleep in a crate of straw where you left her.",
       street: "The road past the market. Leaves all the way across it."
     },
     talkScarecrow: ["\"Evening!\" says the Scarecrow. \"Don't be alarmed. I'm not a spooky one. I'm a civic one.\"",
@@ -707,6 +710,11 @@ const TXT = {
                "Dad: \"Not on a pole, kiddo. That one is an actual bylaw, not just me being fussy.\" Back in the bundle it goes."],
     streetSign: "Not on the road, James. The road is for cars and for leaves.",
     haySign: "Dad: \"It would fall straight over. Hay is not known for its grip.\"",
+    stallsLit: ["You hold the jar up and the little flame throws light right to the back of the stalls.",
+                "There is a kitten asleep in a crate of straw. Tiny. Grey. Absolutely out cold.",
+                "Dad, very quietly: \"Oh, would you look at that.\" He takes a photo with no flash, which is the most careful thing he has done all night.",
+                "You put the jar away before you wake her."],
+    stallsAgain: "The kitten is still there, still asleep, still the best thing at this market.",
     takeThing: "That belongs to the market, and we are not a market."
   },
 
@@ -758,7 +766,7 @@ const TXT = {
     "",
     `Score: ${score} of ${MAX_SCORE}`,
     `Signs placed: ${signs} of 4`,
-    signs === 3 ? "A great, great many thanks to you." : "",
+    signs === 4 ? "A great, great many thanks to you." : "",
     S.got.catplay ? "You were also, briefly, a cat." : "",
     "",
     "Written with love by Ashley and Dad",
@@ -832,13 +840,17 @@ let catPlay = null;
 let dadX = 20, dadY = 165, dadFacing = 1, dadStep = 0;
 let awarded = {};
 
-// Fifteen deeds at five points: eleven award() calls plus the four signs.
+// Nineteen deeds at five points. Fourteen are the story: ten award() calls
+// plus the four signs, which is 70. Five are secrets nobody is told about -
+// being the cat, the kitten in the stalls, counting the pumpkins, hugging
+// Dad and XYZZY - so finishing the story leaves 25 points out there and a
+// reason to go back and poke at things.
 // One of the ten is the hidden one, so finishing the story leaves you on 60
 // of 65 and something still to find, the way the old games did it.
 // This read "of 50" in three places and a child who finished the game was
 // shown 60 of 50, which looks like a bug to the one person who must not
 // think the game is broken.
-const MAX_SCORE = 75;
+const MAX_SCORE = 95;
 function award(key, pts) { if (awarded[key]) return; awarded[key] = true; S.score += pts; S.got[key] = true; flash = { t: 30, txt: '+' + pts }; save(); }
 let flash = null;
 
@@ -1119,6 +1131,38 @@ const FILLER = /\b(the|a|an|to|at|please|up|some|my|that|this)\b/g;
 // cannot solve anything for them early.
 const PAIRS = { pumpkin: 'candle', lantern: 'jar', stairs: 'dad', tower: 'dad', gus: 'glasses' };
 
+// Things a child types to find out whether anybody thought of it. Somebody
+// did. None of these change the world; three of them are worth points,
+// because a secret you find by being silly is the best kind.
+const FUN = {
+  jump: ["You jump. Dad jumps. Neither of you discusses it."],
+  sing: ["You sing the one about the pumpkin. There is no one about a pumpkin, so you invent it as you go.",
+         "Dad joins in on the chorus, confidently, despite there not being one."],
+  dance: ["You do the dance. Dad does the dad version of the dance, which is the same dance but slower and with more nodding."],
+  shout: ["\"AAAAAAA!\" you say. It goes up the street and comes back a bit smaller.",
+          "Dad: \"Good one. Ten out of ten. Maybe one more and then we walk on.\""],
+  run: ["You run on the spot very fast. You arrive nowhere, in excellent time."],
+  spin: ["You spin until the houses go stripy. Dad puts a hand out without looking up."],
+  wave: ["You wave at nobody in particular. Somewhere, a curtain moves and a hand waves back."],
+  smell: ["Woodsmoke, wet leaves, and somebody's dryer going. Halloween smells like this every single year."],
+  listen: ["Leaves. A car two streets over. Somebody laughing in a kitchen. Your own bucket creaking."],
+  sleep: ["Not a chance. It is Halloween."],
+  hide: ["You hide. Dad counts to three and finds you immediately, because you are holding a glowing orange bucket."],
+  fly: ["You put your arms out and bank gently round Dad. For the record, this is flying."],
+  burp: ["You burp. It echoes a bit off the houses. Dad: \"Outstanding acoustics on this street.\""],
+  think: ["You think hard. Something will come. It usually does."],
+  wait: ["You wait. The leaves carry on doing their thing."],
+};
+// Worth points, once each.
+const FUN_SCORED = {
+  hug: { key: 'hugdad', lines: ["You hug Dad round the middle, which is as far up as you get.",
+                                "Dad stops. Dad hugs you back properly, bucket and all, for longer than he needs to.",
+                                "Dad: \"Best night. Best one.\" Right, come on. Lantern."] },
+  xyzzy: { key: 'xyzzy', lines: ["Nothing happens.",
+                                 "Then, after a respectful pause: a hollow voice says \"you are not in a cave, bud\".",
+                                 "Dad looks around. Dad: \"Did you hear that?\" You did. Neither of you mentions it again."] },
+};
+
 function parse(raw) {
   let s = raw.toLowerCase().replace(/[^a-z0-9' ]/g, ' ').replace(/\s+/g, ' ').trim();
   if (!s) return;
@@ -1138,6 +1182,19 @@ function parse(raw) {
     if (!ex[d]) return say(`There is no way ${d} from here.`);
     walkTarget = { x: d === 'right' ? 316 : 4, y: S.y };
     return;
+  }
+  const FUNSYN = { yell: 'shout', scream: 'shout', shout: 'shout', sing: 'sing', song: 'sing',
+    dance: 'dance', jump: 'jump', hop: 'jump', run: 'run', spin: 'spin', twirl: 'spin',
+    wave: 'wave', smell: 'smell', sniff: 'smell', listen: 'listen', hear: 'listen',
+    sleep: 'sleep', nap: 'sleep', hide: 'hide', fly: 'fly', burp: 'burp', think: 'think',
+    wait: 'wait', z: 'wait' };
+  const bare = s.replace(/^(i |let me |lets |let's )/, '').trim();
+  if (FUN[FUNSYN[bare]]) return say(FUN[FUNSYN[bare]]);
+  if (/^(hug|cuddle|squeeze)( dad| my dad)?$/.test(bare) || bare === 'hug dad') {
+    const g = FUN_SCORED.hug; award(g.key, 5); return say(g.lines);
+  }
+  if (bare === 'xyzzy' || bare === 'plugh') {
+    const g = FUN_SCORED.xyzzy; award(g.key, 5); return say(g.lines);
   }
   let verb = null, rest = s;
   for (const v in VERBS) { for (const syn of VERBS[v].sort((a, b) => b.length - a.length)) { if (s === syn || s.startsWith(syn + ' ')) { verb = v; rest = s.slice(syn.length).trim(); break; } } if (verb) break; }
@@ -1168,8 +1225,8 @@ function parse(raw) {
   if (!target) {
     if (!rest) {
       if (verb !== 'look') return say(`${verb.charAt(0).toUpperCase() + verb.slice(1)} what?`);
-      const here = thingsHere(), ways = exitsHere();
-      return say([lookAround(), here, ways].filter(Boolean));
+      const here = thingsHere(), ways = exitsHere(), fresh = notLookedAt();
+      return say([lookAround(), here, fresh, ways].filter(Boolean));
     }
     return say(pick(TXT.nothingHere));
   }
@@ -1198,8 +1255,7 @@ function thingsHere() {
   for (const id in H) if (!skip[id] && live(H[id], id)) names.push(H[id].name);
   if (!names.length) return null;
   const last = names.pop();
-  return 'You can see ' + (names.length ? names.join(', ') + ' and ' + last : last) +
-         '. Try LOOK AT, TAKE, USE or TALK TO any of them.';
+  return 'You can see ' + (names.length ? names.join(', ') + ' and ' + last : last) + '.';
 }
 
 // Where you can walk from here. Walking off the edge has always changed
@@ -1207,6 +1263,24 @@ function thingsHere() {
 // campaign had not found it. LOOK says it now, and GO LEFT works as well as
 // holding the arrow.
 const WAY = { left: 'left', right: 'right' };
+// Which of them you have not examined yet. The campaign's note was that it
+// is not obvious which hotspots are worth trying - in a typed game the prose
+// has to carry that, so LOOK keeps score of what you have actually looked at
+// and points at the rest. It never says which are useful, only which are new.
+function notLookedAt() {
+  const H = cur().hotspots, skip = { street: 1, plaza: 1 }, seen = S.flags.looked || {};
+  const out = [], all = [];
+  for (const id in H) if (!skip[id] && live(H[id], id)) {
+    all.push(id);
+    if (!seen[S.screen + ':' + id]) out.push(H[id].name);
+  }
+  // Nothing examined yet means this line would just repeat the one above it.
+  if (out.length === all.length) return null;
+  if (!out.length) return 'You have had a proper look at everything here.';
+  const last = out.pop();
+  return 'You have not looked at ' + (out.length ? out.join(', ') + ' or ' + last : last) + ' yet.';
+}
+
 function exitsHere() {
   const ex = cur().exits, out = [];
   if (ex.left) out.push('left');
@@ -1241,6 +1315,7 @@ function doVerb(verb, id) {
 }
 function lookAt(id) {
   const L = TXT[S.screen].look, f = S.flags;
+  f.looked = f.looked || {}; f.looked[S.screen + ':' + id] = true;
   if (S.screen === 'street') {
     if (id === 'porch') return has('candle') || f.pumpkinLit ? L.porchNoCandle : L.porch;
     if (id === 'pumpkin') return f.pumpkinLit ? L.pumpkinLit : L.pumpkin;
@@ -1251,6 +1326,13 @@ function lookAt(id) {
   if (S.screen === 'market') {
     if (id === 'grass') return S.placed.D ? L.grassSigned : L.grass;
     if (id === 'scarecrow') return f.metScarecrow ? L.scarecrowMet : L.scarecrow;
+    if (id === 'stalls') return f.foundKitten ? L.stallsDone : L.stallsPlain;
+    if (id === 'pumpkins') {
+      f.pumpkinLooks = (f.pumpkinLooks || 0) + 1;
+      if (f.pumpkinLooks === 2) return "You start counting them. You get to eleven and lose your place behind a big one.";
+      if (f.pumpkinLooks === 3) { award('counted', 5); return "Nineteen. You are almost sure. Dad counts them too and gets twenty-one, so between you it is somewhere in there."; }
+      return L.pumpkins;
+    }
     if (id === 'candle' && (has('candle') || f.pumpkinLit)) return L.porchNoCandle;
   }
   if (S.screen === 'bean') {
@@ -1300,11 +1382,56 @@ function talkTo(id) {
   if (S.screen === 'school') { if (id === 'plaque') return say(lookAt('plaque')); }
   return say(pick(TXT.cantTalk));
 }
+// Specific answers for the daft combinations, keyed item:thing. There are
+// five items and thirty-odd hotspots, so a hundred and sixty-five things a
+// child can try, and before this eighteen of them had an answer. Everything
+// else got one of three shrugs, and the "nothing like that" line had exactly
+// one variation - so trying three silly things in a row printed the same
+// sentence three times, which is the moment a sharp ten year old decides the
+// game is not listening. These are the ones he will actually try.
+const MISSES = {
+  'candle:cat': "You hold the candle near [cat]. [cat] leans back with the air of someone who has thought about fire and decided against it.",
+  'candle:spider': "The spider sees the candle coming and goes up its thread at a speed you did not know spiders had.",
+  'candle:gus': "Gus: \"A ghost. Holding a bedsheet. And you with an open flame. Let us think about this together.\"",
+  'candle:hay': "Dad's hand is on your shoulder before you have finished having the idea. Dad: \"No. Beautiful thinking. No.\"",
+  'candle:scarecrow': "The Scarecrow goes very still. Scarecrow: \"I am, and I cannot stress this enough, made of straw.\"",
+  'candle:dad': "You hold the candle up to Dad. Dad holds his hands out over it like a campfire. Dad: \"Lovely. Toasty. Right, onwards.\"",
+  'candle:tree': "Dad: \"We are not setting fire to a maple on the way to a school, James.\"",
+  'candle:pole': "Nothing about a hydro pole wants a candle near it. Even the pole seems to know.",
+
+  'candy:spider': "You offer the spider a candy. It waves one leg. You are not sure if that is a no or a thank you, but it does not take it.",
+  'candy:scarecrow': "Scarecrow: \"That is very kind. I have no mouth, which is the single biggest flaw in the platform.\"",
+  'candy:dad': "Dad: \"Me? Oh. Well. If you insist.\" He does not take it. He is very obviously waiting to be insisted at again.",
+  'candy:patel': "Mrs. Patel: \"You are giving me back my own candy. That is the most Guelph thing I have ever seen.\"",
+  'candy:pumpkin': "The pumpkin already has a grin. It does not need sugar.",
+
+  'jar:gus': "Gus: \"That is MY flame, and you are taking it BACK to the lantern, which is the correct thing, and I am very embarrassed. Go on.\"",
+  'jar:cat': "[cat] watches the little flame move about in the jar for a long moment. [cat] has opinions. [cat] keeps them.",
+  'jar:spider': "You show the spider the jar. The spider taps the glass. The flame bobs. Everyone is pleased.",
+  'jar:pumpkin': "The pumpkin is already lit. The flame in the jar has somewhere better to be.",
+  'jar:scarecrow': "Scarecrow: \"I would rather you took that over there. Anywhere over there. Thank you.\"",
+  'jar:dad': "Dad looks into the jar. Dad: \"That is the actual Great Pumpkin Lantern flame. In a jam jar. In my son's hand. What a night.\"",
+
+  'glasses:cat': "You hold the glasses up to [cat]. [cat] looks through them, briefly, like a tiny scholar. Then walks off.",
+  'glasses:james': "You put the glasses on. The whole world goes swimmy and enormous. You take them off before you fall over.",
+  'glasses:dad': "Dad tries them on. Dad: \"Whoa.\" He takes them off. Dad: \"How does he SEE.\"",
+  'glasses:spider': "Eight eyes. One pair of glasses. The maths does not work and the spider knows it.",
+  'glasses:scarecrow': "Scarecrow: \"I have buttons. Very good buttons. But thank you.\"",
+
+  'dad:cat': "Dad crouches and offers a knuckle. [cat] sniffs it and allows one chin scratch, which from this cat is a knighthood.",
+  'dad:spider': "Dad does not come closer. Dad, from the pavement: \"Hello, spider. You are doing a great job. I love you from here.\"",
+  'dad:gus': "Dad: \"Gus!\" Gus: \"DAN!\" They do the handshake that takes too long and they both enjoy too much.",
+  'dad:scarecrow': "Dad and the Scarecrow shake hands, candidate to candidate. It takes a while. Neither will let go first.",
+  'dad:pumpkin': "Dad admires the pumpkin. Dad: \"Cracking pumpkin. Proper lid on it and everything.\"",
+  'dad:hay': "Dad lifts one bale about four inches, puts it down, and says nothing for a bit.",
+  'dad:patel': "Mrs. Patel: \"Daniel. Your boy lit my pumpkin.\" Dad: \"I know.\" He is unbearable about it for a full minute.",
+};
+
 function useOn(item, id) {
   const f = S.flags, St = TXT.street, B = TXT.bean, C = TXT.school;
   if (item === 'dad') {
     if (S.screen === 'school' && (id === 'stairs' || id === 'tower' || id === 'lantern')) return climbStairs();
-    return say(C.useDadElse);
+    return say(missLine('dad', id) || C.useDadElse);
   }
   if (!item) { // "use X" with no item
     if (S.screen === 'street' && id === 'pumpkin') return has('candle') ? useOn('candle', 'pumpkin') : say(St.look.pumpkin);
@@ -1317,12 +1444,21 @@ function useOn(item, id) {
     if (S.screen === 'school' && id === 'bigdoor') return say(C.look.bigdoor);
     return say(pick(TXT.cantUse));
   }
-  if (item === 'candle') { if (S.screen === 'street' && id === 'pumpkin') { if (f.pumpkinLit) return say(St.look.pumpkinLit); f.pumpkinLit = true; drop('candle'); award('pumpkin', 5); return say(St.useCandlePumpkin); } return say(St.useCandleWrong); }
-  if (item === 'glasses') { if (S.screen === 'bean' && id === 'gus') { if (!f.spiderHi) return say(B.doorSpider); f.gusGlasses = true; f.inside = true; drop('glasses'); give('jar'); award('flame', 5); return say(B.giveGlasses); } return say("Those are Gus's. He needs them more than that does."); }
-  if (item === 'jar') { if (S.screen === 'school' && id === 'lantern') { if (!f.upstairs) return say(C.useJarEarly); f.lit = true; drop('jar'); award('lantern', 5); say(C.useJarLantern); f.finalePending = true; return; } return say("The flame stays in the jar until it's home."); }
-  if (item === 'candy') { if (S.screen === 'bean' && id === 'cat') return say(`${FILL.cat} sniffs the candy and gives you a look. Cats don't do candy.`); if (id === 'gus' || id === 'neighbour') return say("That's yours, bud. Keep it."); return say(St.eatCandy); }
+  if (item === 'candle') { if (S.screen === 'street' && id === 'pumpkin') { if (f.pumpkinLit) return say(St.look.pumpkinLit); f.pumpkinLit = true; drop('candle'); award('pumpkin', 5); return say(St.useCandlePumpkin); } return say(missLine('candle', id) || St.useCandleWrong); }
+  if (item === 'glasses') { if (S.screen === 'bean' && id === 'gus') { if (!f.spiderHi) return say(B.doorSpider); f.gusGlasses = true; f.inside = true; drop('glasses'); give('jar'); award('flame', 5); return say(B.giveGlasses); } return say(missLine('glasses', id) || "Those are Gus's. He needs them more than that does."); }
+  if (item === 'jar' && S.screen === 'market' && id === 'stalls') {
+    if (f.foundKitten) return say(TXT.market.stallsAgain);
+    f.foundKitten = true; award('kitten', 5);
+    return say(TXT.market.stallsLit);
+  }
+  if (item === 'jar') { if (S.screen === 'school' && id === 'lantern') { if (!f.upstairs) return say(C.useJarEarly); f.lit = true; drop('jar'); award('lantern', 5); say(C.useJarLantern); f.finalePending = true; return; } return say(missLine('jar', id) || "The flame stays in the jar until it's home."); }
+  if (item === 'candy') { if (S.screen === 'bean' && id === 'cat') return say(`${FILL.cat} sniffs the candy and gives you a look. Cats don't do candy.`); if (id === 'gus' || id === 'neighbour') return say("That's yours, bud. Keep it."); return say(missLine('candy', id) || St.eatCandy); }
   return say(pick(TXT.cantUse));
 }
+
+// Checked before the generic shrug, and after every real use, so a written
+// answer never beats an actual puzzle step.
+function missLine(item, id) { return MISSES[item + ':' + id] || null; }
 function climbStairs() { const f = S.flags; if (f.upstairs) return say(TXT.school.look.stairsDone); f.upstairs = true; award('stairs', 5); return say(TXT.school.useDadStairs); }
 function placeSign(id) {
   const f = S.flags, St = TXT.street, B = TXT.bean, C = TXT.school;
