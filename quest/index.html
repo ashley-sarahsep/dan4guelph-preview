@@ -916,6 +916,7 @@ for (const k in SCREENS) { const im = new Image(); im.src = SCREENS[k].bg; im.on
 // finale. Loaded the same guarded way, so a missing file falls back to the
 // old treatment instead of breaking the ending.
 { const im = new Image(); im.src = 'assets/bg/school_lit.png'; im.onload = () => { bgImgs.school_lit = im; }; im.onerror = () => {}; }
+{ const im = new Image(); im.src = 'assets/bg/title.png'; im.onload = () => { bgImgs.title = im; }; im.onerror = () => {}; }
 
 let debug = false, tick = 0, walkTarget = null, keys = {}, msgQueue = [], msgOpen = null, bucketOpen = false, finaleState = null;
 // Which full-screen panel is up, if any: 'help1', 'help2' or 'opts'. One
@@ -1191,10 +1192,36 @@ function drawPlaceholder(sc) {
   ctx.fillStyle = EGA[15]; ctx.font = '8px monospace'; ctx.fillText('missing ' + sc.bg, 8, 24);
 }
 function text(s, x, y, col = 0) { ctx.fillStyle = EGA[col]; ctx.font = '8px monospace'; ctx.textBaseline = 'top'; ctx.fillText(s, x, y); }
+// Centred, at a size of its own, for the title card. The canvas is scaled
+// by PX, so 16 here is 48 real pixels.
+function bigText(s, y, col, size, weight) {
+  ctx.fillStyle = EGA[col]; ctx.font = `${weight || 'bold'} ${size}px monospace`; ctx.textBaseline = 'top';
+  ctx.fillText(s, (320 - ctx.measureText(s).width) / 2, y);
+  ctx.font = '8px monospace';
+}
+// The title card. The art is assets/bg/title.png when it exists; until it
+// does, the lit school stands in, which is the thing the whole game is
+// about and is at least the right picture. Either way the words are drawn
+// by the game rather than baked into the image, because the player can
+// rename the hero and because a renamed hero should see his own title.
+let titleUp = false;
+function drawTitle() {
+  const im = bgImgs.title || bgImgs.school_lit || bgImgs.school;
+  if (im) ctx.drawImage(im, 0, 0, 320, 200); else { ctx.fillStyle = EGA[0]; ctx.fillRect(0, 0, 320, 200); }
+  // a scrim, so the lettering holds on any picture that turns up here
+  ctx.fillStyle = 'rgba(0,0,0,0.62)'; ctx.fillRect(0, 54, 320, 92);
+  ctx.fillStyle = EGA[12]; ctx.fillRect(0, 54, 320, 2); ctx.fillRect(0, 144, 320, 2);
+  bigText(renameText("JAMES'S QUEST").toUpperCase(), 64, 14, 20);
+  bigText('The Perils of the Royal City', 92, 11, 10, '');
+  bigText('A Halloween adventure for one small person', 108, 15, 7, '');
+  bigText('and his dad', 120, 15, 7, '');
+  if (Math.floor(tick / 12) % 2) bigText('Press Enter to begin', 160, 15, 9, '');
+}
 function wrap(s, maxChars) { const words = s.split(' '), lines = []; let line = ''; for (const w of words) { if ((line + ' ' + w).trim().length > maxChars) { lines.push(line.trim()); line = w; } else line += ' ' + w; } if (line.trim()) lines.push(line.trim()); return lines; }
 
 function render() {
   const sc = cur();
+  if (titleUp) return drawTitle();
   if (finaleState) return drawFinale();
   // background
   const bgKey = (S.screen === 'school' && S.flags.lit && bgImgs.school_lit) ? 'school_lit' : S.screen;
@@ -2240,6 +2267,7 @@ cmd.addEventListener('keydown', e => {
   // Enter never saw it, and the only way past a message was to click - which
   // is the complaint. Space is deliberately not a dismiss key in here, since
   // commands contain spaces.
+  if (titleUp && (e.key === 'Enter' || e.key === ' ')) { titleUp = false; e.preventDefault(); e.stopPropagation(); return; }
   if (e.key === 'Enter') {
     if ((panel || bucketOpen) && cmd.value.trim()) { panel = null; bucketOpen = false; run(cmd.value); e.preventDefault(); e.stopPropagation(); return; }
     if (panel) { panel = panel === 'help1' ? 'help2' : null; e.preventDefault(); e.stopPropagation(); return; }
@@ -2253,6 +2281,7 @@ cmd.addEventListener('keydown', e => {
 });
 window.addEventListener('keydown', e => {
   if (e.target === cmd && !e.key.startsWith('Arrow')) return;
+  if (titleUp) { titleUp = false; e.preventDefault(); return; }
   if (finaleState && finaleState.stage === 2 && e.key === 'Enter') { S = START(); awarded = {}; finaleState = null; save(); beginIntro(); return; }
   if (panel && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) {
     panel = (e.key === 'Enter' && panel === 'help1') ? 'help2' : null; e.preventDefault(); return;
@@ -2326,6 +2355,7 @@ function hitHotspot(p) { const H = cur().hotspots; let best = null, bestArea = 1
   } return best; }
 function onTap(e) {
   e.preventDefault(); const p = canvasPoint(e);
+  if (titleUp) { titleUp = false; return; }
   if (finaleState) { if (finaleState.stage === 2) { S = START(); awarded = {}; finaleState = null; save(); beginIntro(); } else if (msgOpen) nextMsg(); return; }
   if (panel) { panel = panel === 'help1' ? 'help2' : null; return; }
   if (msgOpen) { nextMsg(); return; }
@@ -2362,7 +2392,7 @@ fit();
 
 // ---------------------------------------------------------------- START
 function onEnterQuiet() { dadX = S.x - 22; dadY = S.y + 2; }
-function beginIntro() { S.flags.seen_street = true; say([...TXT.intro]); }
+function beginIntro() { titleUp = true; S.flags.seen_street = true; say([...TXT.intro]); }
 (function boot() {
   // Resume without asking. This used to be a confirm(), which meant one
   // stray click on Cancel threw the whole game away - the easiest way to
@@ -2371,6 +2401,7 @@ function beginIntro() { S.flags.seen_street = true; say([...TXT.intro]); }
   const l = load();
   if (l && !l.done) {
     S = l; awarded = {}; for (const k in S.got) awarded[k] = true; onEnterQuiet();
+    titleUp = true;
     say('Back where you left off. ' + S.score + ' of ' + MAX_SCORE + ' so far. Type RESTART if you would rather begin again.');
   } else { S = START(); beginIntro(); }
   setInterval(() => { update(); render(); }, 1000 / 15);
