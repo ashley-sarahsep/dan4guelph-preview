@@ -14,12 +14,15 @@
   --ink-deep:   #071F27;  /* footer, the drafting band                        */
   --cyan:       #1499B8;  /* borders, accents, icon tiles, footer top rule    */
   --teal:       #0B6C85;  /* links, headings on light grounds                 */
-  /* The Donate button's cyan. It is NOT --cyan: the campaign asked for white
-     text on that button, and white on --cyan is 3.34:1, which clears AA only
-     as large text and the button is 16px. This is the same hue darkened until
-     white reaches 4.97:1, so it still reads as the campaign cyan and carries
-     white at any size. Do not use it as a heading colour - --cyan is the one
-     that pairs with dark text. */
+  /* --cyan darkened until white reaches 4.97:1, so it carries white text at
+     any size where --cyan only manages it as large text. It was the Donate
+     button's ground from 16 to 20 Oct 2026; the campaign then asked for the
+     button to be the brand cyan, so the button grew its text instead and
+     this is now used in the default palette by nothing.
+     **It is not dead.** The Halloween block redefines it as the violet and
+     the Donate button's override there uses it, and it is the answer any
+     time white text is wanted on something cyan at body size. Do not use it
+     as a heading colour - --cyan is the one that pairs with dark text. */
   --cyan-deep:  #107A93;
   --pale:       #E7F3F7;  /* tinted panels, icon tile fills, hero gradient    */
   --light-cyan: #8FD3E6;  /* footer column headings                           */
@@ -374,16 +377,27 @@ h1, h2, h3, .h2, .h2--sm, .about-h, .hero-name {
 .btn--outline { background: var(--surface); color: var(--ink); border: var(--bw) solid var(--ink); }
 .btn--outline:hover { background: var(--ink-ground); color: var(--white); }
 .btn--dark { background: var(--ink-ground); color: var(--white); }
-/* Cyan, at the campaign's request, with white text since 16 Oct 2026. It
-   carried --ink-deep before that, because white on --cyan is 3.34:1 and the
-   button is 16px, where AA wants 4.5:1. Rather than shrink the ask or enlarge
-   the button, the ground moved to --cyan-deep, the same hue darkened until
-   white reaches 4.97:1. Hover goes to --ink (13.3:1) rather than --teal: at
-   6.00:1 --teal is only a shade off --cyan-deep and the hover was invisible.
-   The 3px hard shadow is --ink for the same reason - against --teal it had
-   almost nothing to show. No high-contrast override is needed now: that mode
-   resolves --cyan-deep to #00404F, where white is 11.37:1. */
-.btn--donate { background: var(--cyan-deep); color: var(--white); box-shadow: 0 3px 0 var(--ink-ground); }
+/* The page's own --cyan, with white text, both at the campaign's request -
+   the colour on 20 Oct 2026, the white text on 16 Oct. It was --cyan-deep
+   for four days, because white on --cyan is 3.34:1 and AA wants 4.5:1 at
+   body size, so a darkened hue was the only way to carry white at 17px.
+   The campaign wants the brand cyan, so the SIZE moves instead: 3.34:1
+   clears AA as LARGE text, and 1.1875rem at the .btn weight of 700 is 19px
+   bold, past the 18.66px threshold. **That font-size is a contrast fix, not
+   styling.** Drop it and the button fails AA. --ink-deep on --cyan (5.09:1)
+   is the other way to do it, and the campaign chose white.
+   It costs the header 3px, 4px with larger text, measured at 360, 412, 900
+   and 1280 in all five modes - the anchor offsets carry 22px of clearance
+   and still clear with scripting off.
+   Hover goes to --ink (13.3:1) rather than --teal, and the 3px hard shadow
+   is --ink too: at 6.00:1 --teal is close enough to the cyan that neither
+   had anything to show. High contrast needs no override - that mode
+   resolves --cyan to #00404F, where white is 11.37:1. */
+.btn--donate {
+  background: var(--cyan); color: var(--white);
+  font-size: 1.1875rem;
+  box-shadow: 0 3px 0 var(--ink-ground);
+}
 .btn--donate:hover { background: var(--ink-ground); color: var(--white); }
 .btn--dark:hover { background: var(--teal-ground); color: var(--white); }
 .btn--block { display: block; width: 100%; }
@@ -1090,6 +1104,26 @@ html[data-season="halloween"]:not([data-contrast="high"]) .site-header {
    makes on its dark ground. */
 html[data-season="halloween"]:not([data-contrast="high"]) a:hover { color: var(--cyan); }
 html[data-season="halloween"]:not([data-contrast="high"]) .footer-legal { border-top-color: #4A3B63; }
+
+/* The endorsement panel is pumpkin under this skin, because it is painted
+   with --cyan. White on #FF7518 is 2.68:1 and fails even as large text, so
+   the panel's text flips to --ink-deep - the same move the trustee
+   explainer's head and lede already make on this ground, and the reason
+   --cyan is required to stay light. Measured at 7.29:1.
+   Caught by running axe with the skin on, which the panel had not been. */
+html[data-season="halloween"]:not([data-contrast="high"]) .endorse-panel {
+  color: var(--ink-deep);
+}
+
+/* The Donate button keeps the violet here. It follows --cyan on the regular
+   site, which is the campaign's brand colour - but --cyan is pumpkin under
+   this skin, and white on #FF7518 is 2.69:1, a plain fail at any size. It
+   would also give the button the same colour as every heading on the page.
+   --cyan-deep is the violet in this palette and carries white at 5.96:1,
+   which is what this token exists for. */
+html[data-season="halloween"]:not([data-contrast="high"]) .btn--donate {
+  background: var(--cyan-deep);
+}
 
 /* Cobwebs. Two corner webs on the lit grounds - the hero and the trustee
    explainer share .section--band, so one rule hangs them in both - and one in
