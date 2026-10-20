@@ -18,11 +18,12 @@
      any size where --cyan only manages it as large text. It was the Donate
      button's ground from 16 to 20 Oct 2026; the campaign then asked for the
      button to be the brand cyan, so the button grew its text instead and
-     this is now used in the default palette by nothing.
-     **It is not dead.** The Halloween block redefines it as the violet and
-     the Donate button's override there uses it, and it is the answer any
-     time white text is wanted on something cyan at body size. Do not use it
-     as a heading colour - --cyan is the one that pairs with dark text. */
+     this is now used by nothing on the page as shipped.
+     **It is kept on purpose.** It is the answer any time white text is
+     wanted on something cyan at body size, where --cyan itself only manages
+     it as large text, and the seasonal palette in the working copy
+     redefines it for exactly that job. Do not use it as a heading colour -
+     --cyan is the one that pairs with dark text. */
   --cyan-deep:  #107A93;
   --pale:       #E7F3F7;  /* tinted panels, icon tile fills, hero gradient    */
   --light-cyan: #8FD3E6;  /* footer column headings                           */
@@ -958,10 +959,10 @@ html.js .js-only { display: inline-block; }
    lets the wordmark take the width it needs: a flat max-height would leave
    CUPE 840px wide, and a flat max-width would shrink the roundels to nothing.
    max-width keeps the wordmark inside a 360px screen; the row wraps there.
-   The marks are their owners' trademarks - see CLAUDE.md. They are on the
-   page because the campaign asked for them, and they carry alt text naming
-   the local rather than being decorative, because which locals endorsed him
-   is the information they add. */
+   The marks are their owners' trademarks and are used with the committee's
+   permission. They carry alt text naming the local rather than being
+   decorative, because which locals endorsed him is the information they
+   add. */
 .logo-row {
   list-style: none; padding: 0;
   display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
