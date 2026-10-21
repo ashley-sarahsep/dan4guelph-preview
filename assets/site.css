@@ -607,7 +607,13 @@ html[data-contrast="high"] .section--band::before { display: none; }
   text-decoration: none;
   display: inline-block;
 }
-.endorsement:hover { background: var(--teal-ground); color: var(--white); }
+/* Hover goes to the brand cyan, not darker, at the campaign's request on
+   21 Oct 2026 - it used to fill with --teal-ground and read as the same
+   darkening move the Donate button makes. White on --cyan is 3.34:1, which
+   needs the text to be large: this badge is 24px at its smallest and 800
+   throughout, so it is past the 24px threshold on size alone. High contrast
+   resolves --cyan to #00404F, white at 11.37:1. */
+.endorsement:hover { background: var(--cyan); color: var(--white); }
 /* The tagline arrives as a short line and a sentence under it, so the first
    one carries the weight and the second explains it. Cyan, the campaign's core
    colour, at 3.34:1 on the white panel: that clears AA only as LARGE text, so
@@ -1103,7 +1109,15 @@ html[data-season="halloween"]:not([data-contrast="high"]) .site-header {
 /* Link hover is --crimson-hi, a deep violet here, which would vanish into the
    page. Links brighten to pumpkin instead - the same move the footer already
    makes on its dark ground. */
-html[data-season="halloween"]:not([data-contrast="high"]) a:hover { color: var(--cyan); }
+/* Text links only. A button that happens to be an <a> carries its own hover
+   colour, and this rule outspecifies every one of them - which turned the
+   Donate button's label, the endorsement badge's and the primary CTA's to
+   pumpkin on their own hover fills, as low as 2.22:1. Excluding them here
+   fixes all three in one place and keeps any button added later safe.
+   Found by measuring hover states directly; axe never visits them. */
+html[data-season="halloween"]:not([data-contrast="high"]) a:not(.btn):not(.endorsement):hover {
+  color: var(--cyan);
+}
 html[data-season="halloween"]:not([data-contrast="high"]) .footer-legal { border-top-color: #4A3B63; }
 
 /* The endorsement panel is pumpkin under this skin, because it is painted
@@ -1122,8 +1136,18 @@ html[data-season="halloween"]:not([data-contrast="high"]) .endorse-panel {
    would also give the button the same colour as every heading on the page.
    --cyan-deep is the violet in this palette and carries white at 5.96:1,
    which is what this token exists for. */
-html[data-season="halloween"]:not([data-contrast="high"]) .btn--donate {
+/* The Donate button and the endorsement badge both land on --cyan in the
+   default palette, which is pumpkin here - white on #FF7518 is 2.69:1. Both
+   take the violet instead, white at 5.96:1.
+   The button's hover needs its own line: this selector outspecifies
+   .btn--donate:hover, so without it the button kept the violet on hover and
+   had no hover feedback at all under the skin. */
+html[data-season="halloween"]:not([data-contrast="high"]) .btn--donate,
+html[data-season="halloween"]:not([data-contrast="high"]) .endorsement:hover {
   background: var(--cyan-deep);
+}
+html[data-season="halloween"]:not([data-contrast="high"]) .btn--donate:hover {
+  background: var(--ink-ground);
 }
 
 /* Cobwebs. Two corner webs on the lit grounds - the hero and the trustee
