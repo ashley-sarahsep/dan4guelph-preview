@@ -648,6 +648,12 @@ html[data-contrast="high"] .section--band::before { display: none; }
   padding: 10px;
   border-radius: var(--r-photo);
   box-shadow: var(--shadow-photo);
+  /* Positioned so the Halloween costume button can sit over the hero
+     picture. Nothing else is absolutely positioned inside a frame, so this
+     changes no layout on its own - and it lives here, in the base rules,
+     rather than inside the seasonal block, because an ancestor that is only
+     positioned under one skin breaks the moment the skin comes off. */
+  position: relative;
 }
 .photo-frame img {
   display: block; width: 100%; height: auto;
@@ -1188,6 +1194,73 @@ html[data-season="halloween"]:not([data-contrast="high"]) .footer-inner { positi
    without having to watch the contrast attribute itself. */
 html[data-contrast="high"] .hw-spider,
 html[data-contrast="high"] .hw-pumpkin { display: none; }
+
+/* The costume gallery's button, laid over the hero photograph.
+   Deliberately NOT guarded with :not([data-contrast="high"]) like the rest of
+   this block. The seasonal rules are decoration and high contrast is entitled
+   to flatten them; this one is a control, and a control that loses its styling
+   in an accessibility mode is a control nobody can see. It keeps the same
+   shape in both and only its colours change.
+   The frame is given position:relative in the base stylesheet rather than
+   here, because a positioned ancestor that only exists under one skin is the
+   kind of thing that works until somebody turns the skin off. */
+.hw-shuffle {
+  position: absolute; inset: 0; z-index: 2;
+  background: none; border: 0; padding: 0; font: inherit;
+  border-radius: var(--r-photo);
+  cursor: pointer;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+/* The cue sits in the bottom of the picture and only comes up on hover or
+   focus, so the photograph is a photograph until you go near it. Its own
+   dark ground, because it has to carry white over whatever the costume
+   underneath happens to be - 14.35:1 on --ink-ground, and it is the one
+   thing here that cannot be checked against a known background. */
+.hw-shuffle__hint {
+  margin-bottom: 18px;
+  background: var(--ink-ground); color: var(--white);
+  font-family: var(--font-head); font-weight: 700; font-size: 1rem;
+  padding: 8px 16px; border-radius: var(--r-ctl);
+  opacity: 0; transform: translateY(6px);
+  transition: opacity 160ms, transform 160ms;
+}
+.hw-shuffle:hover .hw-shuffle__hint,
+.hw-shuffle:focus-visible .hw-shuffle__hint { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .hw-shuffle__hint { transition: none; }
+}
+html[data-motion="reduced"] .hw-shuffle__hint { transition: none; }
+
+/* The heads.
+   One fixed layer with pointer-events off: it paints over the page and can
+   never cover a link, move anything or widen the document. Under the two
+   floating buttons at 150 on purpose - they stay pressable while it rains.
+   The layer is aria-hidden in the markup, so nothing here carries meaning. */
+.hw-heads {
+  position: fixed; inset: 0; z-index: 140;
+  pointer-events: none; overflow: hidden;
+}
+.hw-head {
+  position: absolute; top: 0; height: auto;
+  will-change: transform;
+  animation: hw-fall linear forwards;
+}
+@keyframes hw-fall {
+  from { transform: translate3d(0, -28vh, 0) rotate(0deg); }
+  to   { transform: translate3d(0, 118vh, 0) rotate(var(--spin, 180deg)); }
+}
+/* Reduced motion keeps the joke and loses the fall: the heads come up where
+   they already are and fade out again. The script positions them down the
+   page for this case rather than stacking them all at the top. */
+.hw-heads.is-still .hw-head {
+  animation: hw-blink 2.2s ease-in-out forwards;
+}
+@keyframes hw-blink {
+  0%   { opacity: 0; }
+  18%  { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { opacity: 0; }
+}
 
 /* The spider.
    Rather than move the spider, the thread above it grows and pushes it down,

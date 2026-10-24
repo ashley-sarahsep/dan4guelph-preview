@@ -292,6 +292,85 @@
   }
 
   /* ---------------------------------------------------------------------
+     The costume gallery.
+     With the skin on, the hero photograph becomes a stack the reader can
+     press through. The first one is whatever the markup's data-season-src
+     names, so the swap above still does the real work and this only takes
+     over from the second press onward - which means the skin looks right
+     before this code has done anything, and a reader who never presses sees
+     exactly what they saw before.
+
+     Each entry carries its own alt text and its own intrinsic size for the
+     same reason the swap does: the files are different shapes and a stale
+     width/height pair reserves the wrong box.
+     ------------------------------------------------------------------- */
+  var COSTUMES = [
+    { src: 'assets/dan-halloween.jpg', w: 761, h: 761,
+      alt: 'Dan at a Halloween party in a white costume and a gold paper crown.' },
+    { src: 'assets/dan-hw-hermes.jpg', w: 700, h: 700,
+      alt: 'Dan in costume as Hermes, in a toga and a winged helmet, holding a caduceus.' },
+    { src: 'assets/dan-hw-rocker.jpg', w: 700, h: 700,
+      alt: 'Dan in costume as a rock guitarist, in a headband and a sleeveless shirt, playing a cardboard guitar.' },
+    { src: 'assets/dan-hw-zeddy.jpg', w: 700, h: 700,
+      alt: 'Dan in a bear costume at a row of payphones, mid-snarl.' },
+    { src: 'assets/dan-hw-detective.jpg', w: 214, h: 214,
+      alt: 'Dan in a trench coat, holding a mug and an early mobile telephone.' }
+  ];
+
+  var costume = 0;
+  var shuffle = null, shuffleSay = null;
+
+  function heroPhoto() { return document.querySelector('.hero-photo'); }
+
+  function showCostume(i) {
+    var img = heroPhoto();
+    if (!img) return;
+    costume = (i + COSTUMES.length) % COSTUMES.length;
+    var c = COSTUMES[costume];
+    img.setAttribute('src', c.src);
+    img.setAttribute('alt', c.alt);
+    img.setAttribute('width', c.w);
+    img.setAttribute('height', c.h);
+    if (shuffle) {
+      shuffle.setAttribute('aria-label',
+        'Next costume. Showing ' + (costume + 1) + ' of ' + COSTUMES.length + '.');
+    }
+    /* An <img> whose alt changes announces nothing, so the description goes
+       to a live region as well. Only after a press - saying it on arrival
+       would read the photograph out twice. */
+    if (shuffleSay) shuffleSay.textContent = c.alt + ' ' + (costume + 1) + ' of ' + COSTUMES.length + '.';
+  }
+
+  /* The button is laid over the photograph rather than wrapped around it:
+     the frame, the mat and the drafting band behind it are all positioned
+     against each other, and re-parenting the picture to make it a button
+     would move all three. Built with the skin and removed with it, like the
+     spider, so the regular site carries none of it. */
+  function addShuffle() {
+    var frame = document.querySelector('.photo-slot--hero .photo-frame');
+    if (!frame || shuffle) return;
+    shuffle = document.createElement('button');
+    shuffle.type = 'button';
+    shuffle.className = 'hw-shuffle';
+    shuffle.setAttribute('aria-label',
+      'Next costume. Showing 1 of ' + COSTUMES.length + '.');
+    shuffle.innerHTML = '<span class="hw-shuffle__hint" aria-hidden="true">Next costume</span>';
+    shuffle.addEventListener('click', function () { showCostume(costume + 1); });
+    frame.appendChild(shuffle);
+
+    shuffleSay = document.createElement('p');
+    shuffleSay.className = 'sr-only';
+    shuffleSay.setAttribute('aria-live', 'polite');
+    frame.appendChild(shuffleSay);
+  }
+
+  function dropShuffle() {
+    if (shuffle) { shuffle.remove(); shuffle = null; }
+    if (shuffleSay) { shuffleSay.remove(); shuffleSay = null; }
+    costume = 0;
+  }
+
+  /* ---------------------------------------------------------------------
      Easter eggs: a spider on the hero's right-hand cobweb and a pumpkin
      hidden in the footer. Both are built here and removed again when the
      skin goes off, so the regular site carries none of their markup. The
@@ -789,6 +868,65 @@
            root.getAttribute('data-motion') === 'reduced';
   }
 
+  /* ---------------------------------------------------------------------
+     The heads.
+     Press the spider and a dozen of the candidate's head rain down the
+     page. The whole thing is one fixed layer with pointer-events off, so it
+     cannot cover a link, shift the layout or widen the page - it is painted
+     over the top and taken away again.
+
+     aria-hidden, because it is a visual joke with nothing to read: the
+     spider's own label is what a screen reader gets, and a live region
+     announcing twelve heads would be noise rather than information.
+
+     A reader who asked for less motion still gets the joke, they just get it
+     standing still - the heads fade up where they are and fade out again,
+     rather than falling. Checked against both the OS setting and the
+     accessibility panel, the same pair the spider's thread checks.
+     ------------------------------------------------------------------- */
+  var headLayer = null, headTimer = null;
+  var HEAD_COUNT = 12;
+
+  function clearHeads() {
+    clearTimeout(headTimer);
+    headTimer = null;
+    if (headLayer) { headLayer.remove(); headLayer = null; }
+  }
+
+  function dropHeads() {
+    clearHeads();
+    var still = stillness();
+    headLayer = document.createElement('div');
+    headLayer.className = 'hw-heads' + (still ? ' is-still' : '');
+    headLayer.setAttribute('aria-hidden', 'true');
+
+    for (var i = 0; i < HEAD_COUNT; i++) {
+      var img = document.createElement('img');
+      img.src = 'assets/dan-head.png';
+      img.alt = '';
+      img.width = 217; img.height = 300;
+      img.className = 'hw-head';
+      /* Spread across the width, with a little jitter so twelve heads do not
+         come down in a comb. The last one is nudged back inside, because a
+         head centred at 100% would hang half off the right-hand edge. */
+      var lane = (i + 0.5) / HEAD_COUNT * 100 + (Math.random() * 7 - 3.5);
+      img.style.left = Math.min(94, Math.max(2, lane)) + '%';
+      img.style.width = (54 + Math.random() * 46) + 'px';
+      if (still) {
+        img.style.top = (8 + Math.random() * 74) + 'vh';
+        img.style.animationDelay = (Math.random() * 0.3).toFixed(2) + 's';
+      } else {
+        img.style.animationDuration = (2.3 + Math.random() * 1.9).toFixed(2) + 's';
+        img.style.animationDelay = (Math.random() * 1.1).toFixed(2) + 's';
+        img.style.setProperty('--spin', (Math.random() * 720 - 360).toFixed(0) + 'deg');
+      }
+      headLayer.appendChild(img);
+    }
+    document.body.appendChild(headLayer);
+    /* Longest run is delay + duration; clear a beat after the last one. */
+    headTimer = setTimeout(clearHeads, still ? 2600 : 5800);
+  }
+
   /* Set once the pumpkin has been found. Session only - finding it again
      next time is part of the fun, and nothing about a child's game belongs
      in storage. */
@@ -862,8 +1000,11 @@
     var sp = document.createElement('button');
     sp.type = 'button';
     sp.className = 'hw-spider';
-    sp.setAttribute('aria-hidden', 'true');
-    sp.tabIndex = -1;
+    /* It does something on every press now - the heads - so it is a real
+       button from the start rather than scenery that only the pumpkin
+       unlocks. The label says what happens; the quest, when it is armed,
+       relabels it on top of this. */
+    sp.setAttribute('aria-label', 'A spider in the cobweb. Press it.');
     sp.innerHTML = '<span class="hw-spider__thread"></span>' + SPIDER;
     if (QUEST_READY && pumpkinFound) unmaskSpider(sp);
     sp.addEventListener('click', function () {
@@ -873,6 +1014,7 @@
       sp.classList.add('is-down');
       clearTimeout(stillSpider);
       stillSpider = setTimeout(function () { sp.classList.remove('is-down'); }, 2400);
+      dropHeads();
     });
     hero.appendChild(sp);
   }
@@ -942,9 +1084,12 @@
       if (quest && quest.open) quest.close();
       if (questFrame) { questFrame.close(); questFrame.remove(); questFrame = null; }
       pumpkinFound = false;
+      clearHeads();
+      dropShuffle();
       return;
     }
     if (hero) addSpider(hero);
+    addShuffle();
     if (QUEST_READY && footer) addPumpkin(footer);
   }
 
