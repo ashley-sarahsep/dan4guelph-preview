@@ -326,6 +326,8 @@
      214px against everyone else's 700-plus, and leading the skin with the
      one soft picture is not what it is for. */
   var COSTUMES = [
+    { src: 'assets/dan-hw-zeddy-sign.jpg', w: 700, h: 700,
+      alt: 'Dan in a Zeddy bear costume, grinning and holding one of his own lawn signs: Elect Dan Atkinson, School Trustee, Wards 2, 3 and 4.' },
     { src: 'assets/dan-halloween.jpg', w: 761, h: 761,
       alt: 'Dan in costume as Max from Where the Wild Things Are, in a white wolf suit and a gold paper crown.' },
     { src: 'assets/dan-hw-detective.jpg', w: 214, h: 214,
@@ -335,7 +337,7 @@
     { src: 'assets/dan-hw-rocker.jpg', w: 700, h: 700,
       alt: 'Dan in costume as a rock guitarist, in a headband and a sleeveless shirt, playing a cardboard guitar.' },
     { src: 'assets/dan-hw-zeddy.jpg', w: 700, h: 700,
-      alt: 'Dan in a bear costume at a row of payphones, mid-snarl.' }
+      alt: 'Dan in the same Zeddy bear costume years earlier, at a row of payphones, mid-snarl.' }
   ];
 
   var costume = 0;
