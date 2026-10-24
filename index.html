@@ -26,12 +26,6 @@
                 dyslexic: ['data-dyslexic', 'on'], spacing: ['data-spacing', 'on'],
                 focus: ['data-focus', 'enhanced'], motion: ['data-motion', 'reduced'] };
       for (var k in m) { if (s[k]) r.setAttribute(m[k][0], m[k][1]); }
-      /* The seasonal skin is remembered separately: it is a preference, not
-         an accessibility setting, and it must not end up in the same object
-         the panel resets. */
-      if (localStorage.getItem('atkinson-season') === 'halloween') {
-        r.setAttribute('data-season', 'halloween');
-      }
     } catch (e) {}
   })();
 </script>
@@ -560,6 +554,6 @@
   </div>
 </dialog>
 
-<script src="assets/site.js?v=0ab20c21"></script>
+<script src="assets/site.js?v=9b46d044"></script>
 </body>
 </html>

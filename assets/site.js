@@ -250,14 +250,24 @@
    A Halloween skin the reader turns on and off; the stylesheet does the work
    off html[data-season]. Built here rather than written into the markup
    because with scripting off it would be a button that does nothing, which is
-   the same reason the accessibility panel is not in the markup either. The
-   choice is remembered in localStorage on the reader's own device, like the
-   accessibility settings, and the inline script in <head> re-applies it
-   before first paint so the page never flashes the wrong way round.
+   the same reason the accessibility panel is not in the markup either.
+
+   **The choice is deliberately NOT remembered**, at the campaign's request on
+   24 Oct 2026: every load starts on the regular site and the skin is only
+   ever on because somebody pressed the button on this pageview. It used to
+   be kept in localStorage under atkinson-season and re-applied by the inline
+   script in <head>, which meant a reader who pressed it once came back to an
+   orange campaign site days later - not what a candidate's site should open
+   with two days before a vote. The key and that half of the head script are
+   both gone, so nothing about the season is written to the reader's device
+   at all.
+
+   The accessibility settings are still stored, and still separately. They
+   are the reader's access needs rather than a seasonal joke, and forgetting
+   those on every load would be a real cost rather than the point.
    The label always says what the next press does.
    --------------------------------------------------------------------------- */
 (function () {
-  var KEY = 'atkinson-season';
   var root = document.documentElement;
   if (!document.body) return;
 
@@ -566,8 +576,18 @@
     if (footer) addPumpkin(footer);
   }
 
-  /* A stored choice is already on <html> by now, so catch up before painting
-     anything else. */
+  /* Anyone who pressed the button while the choice was still being stored
+     has a stale atkinson-season key sitting on their device. Nothing reads
+     it any more, so clear it: the footer tells readers the only thing this
+     page keeps in their browser is their accessibility settings, and that
+     should go on being exactly true rather than nearly true. */
+  try { localStorage.removeItem('atkinson-season'); } catch (e) {}
+
+  /* Nothing restores the skin any more, so there is nothing to catch up on:
+     the page always starts regular. Kept as a guard rather than deleted
+     because the attribute is still the single source of truth, and anything
+     that ever sets it early - a date window, say - should find the rest of
+     the page agreeing with it. */
   if (on()) { photos(true); eggs(true); }
 
   btn.addEventListener('click', function () {
@@ -575,12 +595,10 @@
       root.removeAttribute('data-season');
       photos(false);
       eggs(false);
-      try { localStorage.removeItem(KEY); } catch (e) {}
     } else {
       root.setAttribute('data-season', 'halloween');
       photos(true);
       eggs(true);
-      try { localStorage.setItem(KEY, 'halloween'); } catch (e) {}
     }
     label();
   });
