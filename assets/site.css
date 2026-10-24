@@ -1226,6 +1226,17 @@ html[data-contrast="high"] .hw-pumpkin { display: none; }
 }
 .hw-shuffle:hover .hw-shuffle__hint,
 .hw-shuffle:focus-visible .hw-shuffle__hint { opacity: 1; transform: none; }
+/* On a touch screen there is no hover, so a cue that only appears on hover
+   never appears at all: the photograph just looks like a photograph and
+   nobody learns there are four more behind it. Most of this site's traffic
+   is phones, which makes that the common case rather than the edge one.
+   So where the pointer is coarse the cue is simply always on.
+   The spider and the pumpkin deliberately get no such treatment - they are
+   eggs and finding them is the point. This is a feature, and a feature
+   nobody can see is not a feature. */
+@media (hover: none) {
+  .hw-shuffle__hint { opacity: 1; transform: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   .hw-shuffle__hint { transition: none; }
 }
